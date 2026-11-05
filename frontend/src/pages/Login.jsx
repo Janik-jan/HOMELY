@@ -1,4 +1,4 @@
-
+﻿
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Home, Mail, Lock } from "lucide-react";
@@ -25,7 +25,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8080/api/login", {
+      const response = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -34,7 +34,7 @@ function Login() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Неверная почта или пароль");
+        throw new Error(data.error || "РќРµРІРµСЂРЅР°СЏ РїРѕС‡С‚Р° РёР»Рё РїР°СЂРѕР»СЊ");
       }
 
       localStorage.setItem("authToken", data.token);
@@ -42,7 +42,7 @@ function Login() {
     } catch (err) {
       setError(
         err.message === "Failed to fetch"
-          ? "Не удалось подключиться к серверу. Возможно, backend ещё не запущен."
+          ? "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРєР»СЋС‡РёС‚СЊСЃСЏ Рє СЃРµСЂРІРµСЂСѓ. Р’РѕР·РјРѕР¶РЅРѕ, backend РµС‰С‘ РЅРµ Р·Р°РїСѓС‰РµРЅ."
           : err.message
       );
     } finally {
@@ -57,13 +57,13 @@ function Login() {
       <main className="auth-container">
         <div className="auth-box">
           <div className="auth-icon"><Home size={27} /></div>
-          <h1>С возвращением!</h1>
+          <h1>РЎ РІРѕР·РІСЂР°С‰РµРЅРёРµРј!</h1>
           <p className="auth-subtitle">
-            Войдите в аккаунт, чтобы продолжить работу с HOMELY.
+            Р’РѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚, С‡С‚РѕР±С‹ РїСЂРѕРґРѕР»Р¶РёС‚СЊ СЂР°Р±РѕС‚Сѓ СЃ HOMELY.
           </p>
 
           <form onSubmit={handleSubmit}>
-            <label>Электронная почта</label>
+            <label>Р­Р»РµРєС‚СЂРѕРЅРЅР°СЏ РїРѕС‡С‚Р°</label>
             <div className="auth-input">
               <Mail size={19} />
               <input
@@ -76,7 +76,7 @@ function Login() {
               />
             </div>
 
-            <label>Пароль</label>
+            <label>РџР°СЂРѕР»СЊ</label>
             <div className="auth-input">
               <Lock size={19} />
               <input
@@ -84,7 +84,7 @@ function Login() {
                 name="password"
                 value={form.password}
                 onChange={handleChange}
-                placeholder="Введите пароль"
+                placeholder="Р’РІРµРґРёС‚Рµ РїР°СЂРѕР»СЊ"
                 required
               />
             </div>
@@ -92,12 +92,12 @@ function Login() {
             {error && <div className="auth-error">{error}</div>}
 
             <button className="auth-submit" type="submit" disabled={loading}>
-              {loading ? "Выполняется вход..." : "Войти"}
+              {loading ? "Р’С‹РїРѕР»РЅСЏРµС‚СЃСЏ РІС…РѕРґ..." : "Р’РѕР№С‚Рё"}
             </button>
           </form>
 
           <p className="auth-bottom">
-            Ещё нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+            Р•С‰С‘ РЅРµС‚ Р°РєРєР°СѓРЅС‚Р°? <Link to="/register">Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ</Link>
           </p>
         </div>
       </main>
@@ -106,3 +106,4 @@ function Login() {
 }
 
 export default Login;
+

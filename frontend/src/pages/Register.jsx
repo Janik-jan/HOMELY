@@ -1,4 +1,4 @@
-
+﻿
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Home, User, Mail, Lock } from "lucide-react";
@@ -25,14 +25,14 @@ function Register() {
     setError("");
 
     if (form.password.length < 6) {
-      setError("Пароль должен содержать минимум 6 символов");
+      setError("РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РјРёРЅРёРјСѓРј 6 СЃРёРјРІРѕР»РѕРІ");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8080/api/register", {
+      const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -41,14 +41,14 @@ function Register() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Не удалось зарегистрироваться");
+        throw new Error(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ");
       }
 
       navigate("/login");
     } catch (err) {
       setError(
         err.message === "Failed to fetch"
-          ? "Не удалось подключиться к серверу. Возможно, backend ещё не запущен."
+          ? "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРєР»СЋС‡РёС‚СЊСЃСЏ Рє СЃРµСЂРІРµСЂСѓ. Р’РѕР·РјРѕР¶РЅРѕ, backend РµС‰С‘ РЅРµ Р·Р°РїСѓС‰РµРЅ."
           : err.message
       );
     } finally {
@@ -63,25 +63,25 @@ function Register() {
       <main className="auth-container">
         <div className="auth-box">
           <div className="auth-icon"><Home size={27} /></div>
-          <h1>Создать аккаунт</h1>
+          <h1>РЎРѕР·РґР°С‚СЊ Р°РєРєР°СѓРЅС‚</h1>
           <p className="auth-subtitle">
-            Присоединяйтесь к HOMELY и находите место, которое станет домом.
+            РџСЂРёСЃРѕРµРґРёРЅСЏР№С‚РµСЃСЊ Рє HOMELY Рё РЅР°С…РѕРґРёС‚Рµ РјРµСЃС‚Рѕ, РєРѕС‚РѕСЂРѕРµ СЃС‚Р°РЅРµС‚ РґРѕРјРѕРј.
           </p>
 
           <form onSubmit={handleSubmit}>
-            <label>Ваше имя</label>
+            <label>Р’Р°С€Рµ РёРјСЏ</label>
             <div className="auth-input">
               <User size={19} />
               <input
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                placeholder="Иван Иванов"
+                placeholder="РРІР°РЅ РРІР°РЅРѕРІ"
                 required
               />
             </div>
 
-            <label>Электронная почта</label>
+            <label>Р­Р»РµРєС‚СЂРѕРЅРЅР°СЏ РїРѕС‡С‚Р°</label>
             <div className="auth-input">
               <Mail size={19} />
               <input
@@ -94,7 +94,7 @@ function Register() {
               />
             </div>
 
-            <label>Пароль</label>
+            <label>РџР°СЂРѕР»СЊ</label>
             <div className="auth-input">
               <Lock size={19} />
               <input
@@ -102,7 +102,7 @@ function Register() {
                 name="password"
                 value={form.password}
                 onChange={handleChange}
-                placeholder="Минимум 6 символов"
+                placeholder="РњРёРЅРёРјСѓРј 6 СЃРёРјРІРѕР»РѕРІ"
                 required
               />
             </div>
@@ -110,12 +110,12 @@ function Register() {
             {error && <div className="auth-error">{error}</div>}
 
             <button className="auth-submit" type="submit" disabled={loading}>
-              {loading ? "Создание аккаунта..." : "Зарегистрироваться"}
+              {loading ? "РЎРѕР·РґР°РЅРёРµ Р°РєРєР°СѓРЅС‚Р°..." : "Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ"}
             </button>
           </form>
 
           <p className="auth-bottom">
-            Уже есть аккаунт? <Link to="/login">Войти</Link>
+            РЈР¶Рµ РµСЃС‚СЊ Р°РєРєР°СѓРЅС‚? <Link to="/login">Р’РѕР№С‚Рё</Link>
           </p>
         </div>
       </main>
@@ -124,3 +124,4 @@ function Register() {
 }
 
 export default Register;
+

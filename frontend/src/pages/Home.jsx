@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import {
   Search,
   MapPin,
@@ -20,59 +20,59 @@ import { useNavigate } from "react-router-dom";
 const properties = [
   {
     id: 1,
-    title: "Светлая квартира с видом на город",
-    address: "Москва, Пресненский район",
+    title: "РЎРІРµС‚Р»Р°СЏ РєРІР°СЂС‚РёСЂР° СЃ РІРёРґРѕРј РЅР° РіРѕСЂРѕРґ",
+    address: "РњРѕСЃРєРІР°, РџСЂРµСЃРЅРµРЅСЃРєРёР№ СЂР°Р№РѕРЅ",
     price: 85000,
-    period: "мес.",
+    period: "РјРµСЃ.",
     rooms: 2,
     area: 64,
-    floor: "8 из 16",
+    floor: "8 РёР· 16",
     type: "rent",
     image:
       "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1000",
-    tags: ["Много света", "Тихий двор"],
+    tags: ["РњРЅРѕРіРѕ СЃРІРµС‚Р°", "РўРёС…РёР№ РґРІРѕСЂ"],
   },
   {
     id: 2,
-    title: "Современная квартира рядом с парком",
-    address: "Москва, район Хамовники",
+    title: "РЎРѕРІСЂРµРјРµРЅРЅР°СЏ РєРІР°СЂС‚РёСЂР° СЂСЏРґРѕРј СЃ РїР°СЂРєРѕРј",
+    address: "РњРѕСЃРєРІР°, СЂР°Р№РѕРЅ РҐР°РјРѕРІРЅРёРєРё",
     price: 18500000,
     period: "",
     rooms: 3,
     area: 82,
-    floor: "5 из 12",
+    floor: "5 РёР· 12",
     type: "sale",
     image:
       "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1000",
-    tags: ["Рядом парк", "Балкон"],
+    tags: ["Р СЏРґРѕРј РїР°СЂРє", "Р‘Р°Р»РєРѕРЅ"],
   },
   {
     id: 3,
-    title: "Уютная квартира в спокойном районе",
-    address: "Москва, район Сокол",
+    title: "РЈСЋС‚РЅР°СЏ РєРІР°СЂС‚РёСЂР° РІ СЃРїРѕРєРѕР№РЅРѕРј СЂР°Р№РѕРЅРµ",
+    address: "РњРѕСЃРєРІР°, СЂР°Р№РѕРЅ РЎРѕРєРѕР»",
     price: 62000,
-    period: "мес.",
+    period: "РјРµСЃ.",
     rooms: 1,
     area: 42,
-    floor: "3 из 9",
+    floor: "3 РёР· 9",
     type: "rent",
     image:
       "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1000",
-    tags: ["Тихий район", "Метро рядом"],
+    tags: ["РўРёС…РёР№ СЂР°Р№РѕРЅ", "РњРµС‚СЂРѕ СЂСЏРґРѕРј"],
   },
   {
     id: 4,
-    title: "Просторная квартира с большой кухней",
-    address: "Москва, район Хорошёво-Мнёвники",
+    title: "РџСЂРѕСЃС‚РѕСЂРЅР°СЏ РєРІР°СЂС‚РёСЂР° СЃ Р±РѕР»СЊС€РѕР№ РєСѓС…РЅРµР№",
+    address: "РњРѕСЃРєРІР°, СЂР°Р№РѕРЅ РҐРѕСЂРѕС€С‘РІРѕ-РњРЅС‘РІРЅРёРєРё",
     price: 14200000,
     period: "",
     rooms: 2,
     area: 71,
-    floor: "11 из 20",
+    floor: "11 РёР· 20",
     type: "sale",
     image:
       "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1000",
-    tags: ["Большая кухня", "Много света"],
+    tags: ["Р‘РѕР»СЊС€Р°СЏ РєСѓС…РЅСЏ", "РњРЅРѕРіРѕ СЃРІРµС‚Р°"],
   },
 ];
 
@@ -108,7 +108,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
 
   try {
     const response = await fetch(
-      `http://localhost:8080/api/favorites/${id}`,
+      `/api/favorites/${id}`,
       {
         method: favorites.includes(id) ? "DELETE" : "POST",
         headers: {
@@ -118,7 +118,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
     );
 
     if (!response.ok) {
-      alert("Не удалось изменить избранное.");
+      alert("РќРµ СѓРґР°Р»РѕСЃСЊ РёР·РјРµРЅРёС‚СЊ РёР·Р±СЂР°РЅРЅРѕРµ.");
       return;
     }
 
@@ -128,7 +128,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
         : [...current, id]
     );
   } catch (error) {
-    alert("Ошибка подключения к серверу.");
+    alert("РћС€РёР±РєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє СЃРµСЂРІРµСЂСѓ.");
   }
 }
 
@@ -149,19 +149,19 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
           <div className="hero-content">
             <div className="eyebrow">
               <span className="eyebrow-line" />
-              ПРОСТРАНСТВО ДЛЯ ВАШЕЙ ЖИЗНИ
+              РџР РћРЎРўР РђРќРЎРўР’Рћ Р”Р›РЇ Р’РђРЁР•Р™ Р–РР—РќР
             </div>
 
             <h1>
-              Найдите не просто
+              РќР°Р№РґРёС‚Рµ РЅРµ РїСЂРѕСЃС‚Рѕ
               <br />
-              квартиру, а <span>свой дом.</span>
+              РєРІР°СЂС‚РёСЂСѓ, Р° <span>СЃРІРѕР№ РґРѕРј.</span>
             </h1>
 
             <p className="hero-description">
-              Помогаем выбрать жильё, в котором будет комфортно жить.
-              Учитываем не только характеристики квартиры, но и то,
-              что находится вокруг неё.
+              РџРѕРјРѕРіР°РµРј РІС‹Р±СЂР°С‚СЊ Р¶РёР»СЊС‘, РІ РєРѕС‚РѕСЂРѕРј Р±СѓРґРµС‚ РєРѕРјС„РѕСЂС‚РЅРѕ Р¶РёС‚СЊ.
+              РЈС‡РёС‚С‹РІР°РµРј РЅРµ С‚РѕР»СЊРєРѕ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё РєРІР°СЂС‚РёСЂС‹, РЅРѕ Рё С‚Рѕ,
+              С‡С‚Рѕ РЅР°С…РѕРґРёС‚СЃСЏ РІРѕРєСЂСѓРі РЅРµС‘.
             </p>
 
             <div className="search-panel">
@@ -173,7 +173,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
                     setShowAll(false);
                   }}
                 >
-                  Аренда
+                  РђСЂРµРЅРґР°
                 </button>
 
                 <button
@@ -183,7 +183,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
                     setShowAll(false);
                   }}
                 >
-                  Покупка
+                  РџРѕРєСѓРїРєР°
                 </button>
               </div>
 
@@ -193,7 +193,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
 
                   <input
                     type="text"
-                    placeholder="Город, район или адрес"
+                    placeholder="Р“РѕСЂРѕРґ, СЂР°Р№РѕРЅ РёР»Рё Р°РґСЂРµСЃ"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                   />
@@ -201,25 +201,25 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
 
                 <button className="search-button" type="submit">
                   <Search size={19} />
-                  Найти жильё
+                  РќР°Р№С‚Рё Р¶РёР»СЊС‘
                 </button>
               </form>
             </div>
 
             <div className="hero-note">
               <ShieldCheck size={17} />
-              Больше информации — увереннее выбор
+              Р‘РѕР»СЊС€Рµ РёРЅС„РѕСЂРјР°С†РёРё вЂ” СѓРІРµСЂРµРЅРЅРµРµ РІС‹Р±РѕСЂ
             </div>
           </div>
 
           <div className="hero-image">
             <img
               src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1400"
-              alt="Современный светлый интерьер квартиры"
+              alt="РЎРѕРІСЂРµРјРµРЅРЅС‹Р№ СЃРІРµС‚Р»С‹Р№ РёРЅС‚РµСЂСЊРµСЂ РєРІР°СЂС‚РёСЂС‹"
             />
 
             <div className="image-caption">
-              <span>Место, в котором хочется жить</span>
+              <span>РњРµСЃС‚Рѕ, РІ РєРѕС‚РѕСЂРѕРј С…РѕС‡РµС‚СЃСЏ Р¶РёС‚СЊ</span>
               <span>HOMELY</span>
             </div>
           </div>
@@ -230,17 +230,17 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
             <div>
               <div className="eyebrow">
                 <span className="eyebrow-line" />
-                ПОДБОРКА HOMELY
+                РџРћР”Р‘РћР РљРђ HOMELY
               </div>
 
               <h2>
                 {dealType === "rent"
-                  ? "Жильё в аренду"
-                  : "Жильё на продажу"}
+                  ? "Р–РёР»СЊС‘ РІ Р°СЂРµРЅРґСѓ"
+                  : "Р–РёР»СЊС‘ РЅР° РїСЂРѕРґР°Р¶Сѓ"}
               </h2>
 
               <p>
-                Подобрали варианты, на которые стоит обратить внимание.
+                РџРѕРґРѕР±СЂР°Р»Рё РІР°СЂРёР°РЅС‚С‹, РЅР° РєРѕС‚РѕСЂС‹Рµ СЃС‚РѕРёС‚ РѕР±СЂР°С‚РёС‚СЊ РІРЅРёРјР°РЅРёРµ.
               </p>
             </div>
 
@@ -249,7 +249,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
               onClick={() => setSearch("")}
             >
               <SlidersHorizontal size={18} />
-              Сбросить поиск
+              РЎР±СЂРѕСЃРёС‚СЊ РїРѕРёСЃРє
             </button>
           </div>
 
@@ -264,7 +264,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
                       favorites.includes(property.id) ? "selected" : ""
                     }`}
                     onClick={() => toggleFavorite(property.id)}
-                    aria-label="Добавить в избранное"
+                    aria-label="Р”РѕР±Р°РІРёС‚СЊ РІ РёР·Р±СЂР°РЅРЅРѕРµ"
                   >
                     <Heart
                       size={20}
@@ -277,13 +277,13 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
                   </button>
 
                   <span className="property-label">
-                    {property.type === "rent" ? "Аренда" : "Продажа"}
+                    {property.type === "rent" ? "РђСЂРµРЅРґР°" : "РџСЂРѕРґР°Р¶Р°"}
                   </span>
                 </div>
 
                 <div className="property-info">
                   <div className="property-price">
-                    {property.price.toLocaleString("ru-RU")} ₽
+                    {property.price.toLocaleString("ru-RU")} в‚Ѕ
                     {property.period && (
                       <span> / {property.period}</span>
                     )}
@@ -299,15 +299,15 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
                   <div className="property-details">
                     <span>
                       <BedDouble size={16} />
-                      {property.rooms} комн.
+                      {property.rooms} РєРѕРјРЅ.
                     </span>
 
                     <span>
                       <Maximize2 size={15} />
-                      {property.area} м²
+                      {property.area} РјВІ
                     </span>
 
-                    <span>{property.floor} этаж</span>
+                    <span>{property.floor} СЌС‚Р°Р¶</span>
                   </div>
 
                   <div className="property-tags">
@@ -320,7 +320,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
   className="catalog-details-link"
   onClick={() => navigate(`/property/${property.id}`)}
 >
-  Подробнее
+  РџРѕРґСЂРѕР±РЅРµРµ
   <ArrowUpRight size={17} />
 </button>
                 </div>
@@ -331,12 +331,12 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
           {filteredProperties.length === 0 && (
             <div className="empty-state">
               <Search size={30} />
-              <h3>Ничего не найдено</h3>
+              <h3>РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</h3>
               <p>
-                Попробуйте изменить название города или района.
+                РџРѕРїСЂРѕР±СѓР№С‚Рµ РёР·РјРµРЅРёС‚СЊ РЅР°Р·РІР°РЅРёРµ РіРѕСЂРѕРґР° РёР»Рё СЂР°Р№РѕРЅР°.
               </p>
               <button onClick={() => setSearch("")}>
-                Сбросить поиск
+                РЎР±СЂРѕСЃРёС‚СЊ РїРѕРёСЃРє
               </button>
             </div>
           )}
@@ -346,7 +346,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
               className="show-more-button"
               onClick={() => setShowAll(!showAll)}
             >
-              {showAll ? "Скрыть" : "Показать ещё"}
+              {showAll ? "РЎРєСЂС‹С‚СЊ" : "РџРѕРєР°Р·Р°С‚СЊ РµС‰С‘"}
             </button>
           )}
         </section>
@@ -355,34 +355,34 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
           <div className="about-image">
             <img
               src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200"
-              alt="Уютная гостиная"
+              alt="РЈСЋС‚РЅР°СЏ РіРѕСЃС‚РёРЅР°СЏ"
             />
           </div>
 
           <div className="about-content">
             <div className="eyebrow">
               <span className="eyebrow-line" />
-              НАША ИДЕЯ
+              РќРђРЁРђ РР”Р•РЇ
             </div>
 
             <h2>
-              Дом — это больше,
-              чем просто стены.
+              Р”РѕРј вЂ” СЌС‚Рѕ Р±РѕР»СЊС€Рµ,
+              С‡РµРј РїСЂРѕСЃС‚Рѕ СЃС‚РµРЅС‹.
             </h2>
 
             <p>
-              При выборе жилья важна не только площадь и цена.
-              Имеет значение, насколько светло в квартире, тихо ли
-              во дворе, есть ли рядом парк, магазины и удобный транспорт.
+              РџСЂРё РІС‹Р±РѕСЂРµ Р¶РёР»СЊСЏ РІР°Р¶РЅР° РЅРµ С‚РѕР»СЊРєРѕ РїР»РѕС‰Р°РґСЊ Рё С†РµРЅР°.
+              РРјРµРµС‚ Р·РЅР°С‡РµРЅРёРµ, РЅР°СЃРєРѕР»СЊРєРѕ СЃРІРµС‚Р»Рѕ РІ РєРІР°СЂС‚РёСЂРµ, С‚РёС…Рѕ Р»Рё
+              РІРѕ РґРІРѕСЂРµ, РµСЃС‚СЊ Р»Рё СЂСЏРґРѕРј РїР°СЂРє, РјР°РіР°Р·РёРЅС‹ Рё СѓРґРѕР±РЅС‹Р№ С‚СЂР°РЅСЃРїРѕСЂС‚.
             </p>
 
             <p>
-              HOMELY объединяет информацию о недвижимости и окружающей
-              среде, чтобы помочь принять взвешенное решение.
+              HOMELY РѕР±СЉРµРґРёРЅСЏРµС‚ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РЅРµРґРІРёР¶РёРјРѕСЃС‚Рё Рё РѕРєСЂСѓР¶Р°СЋС‰РµР№
+              СЃСЂРµРґРµ, С‡С‚РѕР±С‹ РїРѕРјРѕС‡СЊ РїСЂРёРЅСЏС‚СЊ РІР·РІРµС€РµРЅРЅРѕРµ СЂРµС€РµРЅРёРµ.
             </p>
 
             <a href="#advantages" className="text-link">
-              Узнать о преимуществах <ArrowUpRight size={18} />
+              РЈР·РЅР°С‚СЊ Рѕ РїСЂРµРёРјСѓС‰РµСЃС‚РІР°С… <ArrowUpRight size={18} />
             </a>
           </div>
         </section>
@@ -391,15 +391,15 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
           <div className="section-heading centered">
             <div className="eyebrow">
               <span className="eyebrow-line" />
-              ПОЧЕМУ HOMELY
+              РџРћР§Р•РњРЈ HOMELY
               <span className="eyebrow-line" />
             </div>
 
-            <h2>Выбирайте с пониманием</h2>
+            <h2>Р’С‹Р±РёСЂР°Р№С‚Рµ СЃ РїРѕРЅРёРјР°РЅРёРµРј</h2>
 
             <p>
-              Мы обращаем внимание на детали, которые влияют
-              на повседневную жизнь.
+              РњС‹ РѕР±СЂР°С‰Р°РµРј РІРЅРёРјР°РЅРёРµ РЅР° РґРµС‚Р°Р»Рё, РєРѕС‚РѕСЂС‹Рµ РІР»РёСЏСЋС‚
+              РЅР° РїРѕРІСЃРµРґРЅРµРІРЅСѓСЋ Р¶РёР·РЅСЊ.
             </p>
           </div>
 
@@ -409,9 +409,9 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
                 <Sun size={25} />
               </div>
 
-              <h3>Комфорт внутри</h3>
+              <h3>РљРѕРјС„РѕСЂС‚ РІРЅСѓС‚СЂРё</h3>
               <p>
-                Освещённость, планировка, балкон, этаж и состояние жилья.
+                РћСЃРІРµС‰С‘РЅРЅРѕСЃС‚СЊ, РїР»Р°РЅРёСЂРѕРІРєР°, Р±Р°Р»РєРѕРЅ, СЌС‚Р°Р¶ Рё СЃРѕСЃС‚РѕСЏРЅРёРµ Р¶РёР»СЊСЏ.
               </p>
             </div>
 
@@ -420,9 +420,9 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
                 <Trees size={25} />
               </div>
 
-              <h3>Окружение</h3>
+              <h3>РћРєСЂСѓР¶РµРЅРёРµ</h3>
               <p>
-                Парки, магазины, кафе, школы и места для прогулок рядом.
+                РџР°СЂРєРё, РјР°РіР°Р·РёРЅС‹, РєР°С„Рµ, С€РєРѕР»С‹ Рё РјРµСЃС‚Р° РґР»СЏ РїСЂРѕРіСѓР»РѕРє СЂСЏРґРѕРј.
               </p>
             </div>
 
@@ -431,9 +431,9 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
                 <MapPin size={25} />
               </div>
 
-              <h3>Удобное расположение</h3>
+              <h3>РЈРґРѕР±РЅРѕРµ СЂР°СЃРїРѕР»РѕР¶РµРЅРёРµ</h3>
               <p>
-                Транспорт, остановки и важные места поблизости.
+                РўСЂР°РЅСЃРїРѕСЂС‚, РѕСЃС‚Р°РЅРѕРІРєРё Рё РІР°Р¶РЅС‹Рµ РјРµСЃС‚Р° РїРѕР±Р»РёР·РѕСЃС‚Рё.
               </p>
             </div>
 
@@ -442,9 +442,9 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
                 <ShieldCheck size={25} />
               </div>
 
-              <h3>Честная информация</h3>
+              <h3>Р§РµСЃС‚РЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</h3>
               <p>
-                Преимущества и недостатки, которые важно знать заранее.
+                РџСЂРµРёРјСѓС‰РµСЃС‚РІР° Рё РЅРµРґРѕСЃС‚Р°С‚РєРё, РєРѕС‚РѕСЂС‹Рµ РІР°Р¶РЅРѕ Р·РЅР°С‚СЊ Р·Р°СЂР°РЅРµРµ.
               </p>
             </div>
           </div>
@@ -452,12 +452,12 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
 
         <section className="publish-banner">
           <div>
-            <div className="eyebrow">ВАШЕ ЖИЛЬЁ — В HOMELY</div>
+            <div className="eyebrow">Р’РђРЁР• Р–РР›Р¬РЃ вЂ” Р’ HOMELY</div>
 
-            <h2>Хотите разместить объявление?</h2>
+            <h2>РҐРѕС‚РёС‚Рµ СЂР°Р·РјРµСЃС‚РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ?</h2>
 
             <p>
-              Расскажите о своём объекте и найдите заинтересованных людей.
+              Р Р°СЃСЃРєР°Р¶РёС‚Рµ Рѕ СЃРІРѕС‘Рј РѕР±СЉРµРєС‚Рµ Рё РЅР°Р№РґРёС‚Рµ Р·Р°РёРЅС‚РµСЂРµСЃРѕРІР°РЅРЅС‹С… Р»СЋРґРµР№.
             </p>
           </div>
 
@@ -468,7 +468,7 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
             
           >
             <Plus size={19} />
-            Разместить объявление
+            Р Р°Р·РјРµСЃС‚РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ
           </button>
         </section>
       </main>
@@ -482,11 +482,11 @@ const isLoggedIn = Boolean(localStorage.getItem("authToken"));
         </a>
 
         <p>
-          Мы помогаем выбрать не просто квартиру,
-          а место, в котором захочется жить.
+          РњС‹ РїРѕРјРѕРіР°РµРј РІС‹Р±СЂР°С‚СЊ РЅРµ РїСЂРѕСЃС‚Рѕ РєРІР°СЂС‚РёСЂСѓ,
+          Р° РјРµСЃС‚Рѕ, РІ РєРѕС‚РѕСЂРѕРј Р·Р°С…РѕС‡РµС‚СЃСЏ Р¶РёС‚СЊ.
         </p>
 
-        <span>© 2026 HOMELY</span>
+        <span>В© 2026 HOMELY</span>
       </footer>
     </div>
   );

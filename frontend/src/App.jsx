@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import HomePage from "./pages/Home";
@@ -22,7 +22,7 @@ function ProtectedRoute({ children }) {
       return;
     }
 
-    fetch("http://localhost:8080/api/me", {
+    fetch("/api/me", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -40,7 +40,7 @@ function ProtectedRoute({ children }) {
   }, []);
 
   if (authorized === null) {
-    return <div style={{ padding: 40, textAlign: "center" }}>Загрузка...</div>;
+    return <div style={{ padding: 40, textAlign: "center" }}>Р—Р°РіСЂСѓР·РєР°...</div>;
   }
 
   return authorized ? children : <Navigate to="/login" replace />;

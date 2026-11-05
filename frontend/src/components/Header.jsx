@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { Home, Heart, UserRound, Plus } from "lucide-react";
 import "./Header.css";
 
@@ -15,9 +15,9 @@ function Header() {
       </Link>
 
       <nav className="site-navigation">
-        <Link to="/catalog">Недвижимость</Link>
-        <a href="/#about">О проекте</a>
-        <a href="/#advantages">Преимущества</a>
+        <Link to="/catalog">РќРµРґРІРёР¶РёРјРѕСЃС‚СЊ</Link>
+        <a href="/#about">Рћ РїСЂРѕРµРєС‚Рµ</a>
+        <a href="/#advantages">РџСЂРµРёРјСѓС‰РµСЃС‚РІР°</a>
       </nav>
 
       <div className="site-actions">
@@ -26,7 +26,7 @@ function Header() {
           to={isLoggedIn ? "/favorites" : "/login"}
         >
           <Heart size={18} />
-          Избранное
+          РР·Р±СЂР°РЅРЅРѕРµ
         </Link>
 
         <Link
@@ -34,12 +34,12 @@ function Header() {
           to={isLoggedIn ? "/add-property" : "/register"}
         >
           <Plus size={18} />
-          Разместить
+          Р Р°Р·РјРµСЃС‚РёС‚СЊ
         </Link>
 
         <Link className="header-login" to={isLoggedIn ? "/profile" : "/login"}>
           <UserRound size={17} />
-          {isLoggedIn ? "Кабинет" : "Войти"}
+          {isLoggedIn ? "РљР°Р±РёРЅРµС‚" : "Р’РѕР№С‚Рё"}
         </Link>
       </div>
     </header>

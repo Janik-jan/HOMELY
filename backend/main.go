@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"database/sql"
@@ -119,11 +119,22 @@ func main() {
 		api.PATCH("/appointments/:id/status", authMiddleware(), updateAppointmentStatus)
 	}
 
-	log.Println("HOMELY API запущен на http://localhost:8080")
+	port := os.Getenv("PORT")
+if port == "" {
+    port = "8080"
+}
 
-	if err := r.Run(":8080"); err != nil {
-		log.Fatal(err)
-	}
+r.Static("/assets", "./dist/assets")
+r.StaticFile("/", "./dist/index.html")
+r.NoRoute(func(c *gin.Context) {
+    c.File("./dist/index.html")
+})
+
+log.Println("HOMELY запущен на порту " + port)
+
+if err := r.Run(":" + port); err != nil {
+    log.Fatal(err)
+}
 }
 
 func health(c *gin.Context) {
@@ -134,79 +145,38 @@ func health(c *gin.Context) {
 }
 
 func connectDatabase() error {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
+    databaseURL := os.Getenv("DATABASE_URL")
 
-	if host == "" {
-		host = "localhost"
-	}
-	if port == "" {
-		port = "5432"
-	}
-	if user == "" {
-		user = "postgres"
-	}
-	if dbName == "" {
-		dbName = "homely"
-	}
+    if databaseURL == "" {
+        return fmt.Errorf("переменная DATABASE_URL не задана")
+    }
 
-	// Подключаемся к служебной базе PostgreSQL.
-	adminURL := buildDatabaseURL(host, port, user, password, "postgres")
+    parsedURL, err := url.Parse(databaseURL)
+    if err != nil {
+        return err
+    }
 
-	adminDB, err := sql.Open("postgres", adminURL)
-	if err != nil {
-		return err
-	}
-	defer adminDB.Close()
+    query := parsedURL.Query()
+    if query.Get("sslmode") == "" {
+        query.Set("sslmode", "require")
+    }
+    parsedURL.RawQuery = query.Encode()
 
-	if err := adminDB.Ping(); err != nil {
-		return fmt.Errorf("PostgreSQL недоступен: %w", err)
-	}
+    db, err = sql.Open("postgres", parsedURL.String())
+    if err != nil {
+        return err
+    }
 
-	// Проверяем наличие нашей базы.
-	var exists bool
+    db.SetMaxOpenConns(10)
+    db.SetMaxIdleConns(5)
+    db.SetConnMaxLifetime(30 * time.Minute)
 
-	err = adminDB.QueryRow(
-		"SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)",
-		dbName,
-	).Scan(&exists)
+    if err := db.Ping(); err != nil {
+        return err
+    }
 
-	if err != nil {
-		return err
-	}
-
-	// Если базы нет, создаём её.
-	if !exists {
-		query := "CREATE DATABASE " + pq.QuoteIdentifier(dbName)
-
-		if _, err := adminDB.Exec(query); err != nil {
-			return fmt.Errorf("не удалось создать базу: %w", err)
-		}
-
-		log.Println("База данных", dbName, "создана")
-	}
-
-	// Подключаемся к базе HOMELY.
-	dbURL := buildDatabaseURL(host, port, user, password, dbName)
-
-	db, err = sql.Open("postgres", dbURL)
-	if err != nil {
-		return err
-	}
-
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(30 * time.Minute)
-
-	if err := db.Ping(); err != nil {
-		return err
-	}
-
-	log.Println("Подключение к PostgreSQL успешно")
-	return nil
+    log.Println("Подключение к PostgreSQL успешно")
+    return nil
 }
 
 func buildDatabaseURL(host, port, user, password, database string) string {

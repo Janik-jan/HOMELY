@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -20,14 +20,14 @@ function Favorites() {
     const token = localStorage.getItem("authToken");
 
     if (!token) {
-      setError("Войдите в аккаунт, чтобы просматривать избранное.");
+      setError("Р’РѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚, С‡С‚РѕР±С‹ РїСЂРѕСЃРјР°С‚СЂРёРІР°С‚СЊ РёР·Р±СЂР°РЅРЅРѕРµ.");
       setLoading(false);
       return;
     }
 
     try {
       const response = await fetch(
-        "http://localhost:8080/api/favorites",
+        "/api/favorites",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -38,13 +38,13 @@ function Favorites() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Не удалось загрузить избранное");
+        setError(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РёР·Р±СЂР°РЅРЅРѕРµ");
         return;
       }
 
       setProperties(data.properties || []);
     } catch (error) {
-      setError("Не удалось подключиться к HOMELY API.");
+      setError("РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРєР»СЋС‡РёС‚СЊСЃСЏ Рє HOMELY API.");
     } finally {
       setLoading(false);
     }
@@ -59,7 +59,7 @@ function Favorites() {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/favorites/${id}`,
+        `/api/favorites/${id}`,
         {
           method: "DELETE",
           headers: {
@@ -69,7 +69,7 @@ function Favorites() {
       );
 
       if (!response.ok) {
-        alert("Не удалось удалить объявление из избранного");
+        alert("РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ РёР· РёР·Р±СЂР°РЅРЅРѕРіРѕ");
         return;
       }
 
@@ -77,7 +77,7 @@ function Favorites() {
         current.filter((property) => property.id !== id)
       );
     } catch (error) {
-      alert("Ошибка подключения к серверу");
+      alert("РћС€РёР±РєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє СЃРµСЂРІРµСЂСѓ");
     }
   }
 
@@ -89,21 +89,21 @@ function Favorites() {
         <div className="favorites-intro">
           <div className="catalog-eyebrow">
             <span />
-            ВАШ HOMELY
+            Р’РђРЁ HOMELY
           </div>
 
-          <h1>Избранное</h1>
+          <h1>РР·Р±СЂР°РЅРЅРѕРµ</h1>
 
           <p>
-            Здесь собраны квартиры, которые вы сохранили для дальнейшего
-            просмотра.
+            Р—РґРµСЃСЊ СЃРѕР±СЂР°РЅС‹ РєРІР°СЂС‚РёСЂС‹, РєРѕС‚РѕСЂС‹Рµ РІС‹ СЃРѕС…СЂР°РЅРёР»Рё РґР»СЏ РґР°Р»СЊРЅРµР№С€РµРіРѕ
+            РїСЂРѕСЃРјРѕС‚СЂР°.
           </p>
         </div>
 
         {loading ? (
           <div className="catalog-empty">
             <Heart size={32} />
-            <h3>Загружаем избранное...</h3>
+            <h3>Р—Р°РіСЂСѓР¶Р°РµРј РёР·Р±СЂР°РЅРЅРѕРµ...</h3>
           </div>
         ) : error ? (
           <div className="catalog-empty">
@@ -111,28 +111,28 @@ function Favorites() {
             <h3>{error}</h3>
 
             <button onClick={() => navigate("/login")}>
-              Войти в аккаунт
+              Р’РѕР№С‚Рё РІ Р°РєРєР°СѓРЅС‚
             </button>
           </div>
         ) : properties.length === 0 ? (
           <div className="catalog-empty">
             <Heart size={32} />
-            <h3>Пока ничего нет</h3>
+            <h3>РџРѕРєР° РЅРёС‡РµРіРѕ РЅРµС‚</h3>
             <p>
-              Добавляйте понравившиеся квартиры в избранное,
-              чтобы не потерять их.
+              Р”РѕР±Р°РІР»СЏР№С‚Рµ РїРѕРЅСЂР°РІРёРІС€РёРµСЃСЏ РєРІР°СЂС‚РёСЂС‹ РІ РёР·Р±СЂР°РЅРЅРѕРµ,
+              С‡С‚РѕР±С‹ РЅРµ РїРѕС‚РµСЂСЏС‚СЊ РёС….
             </p>
 
             <Link to="/catalog" className="catalog-details-link">
-              Перейти в каталог
+              РџРµСЂРµР№С‚Рё РІ РєР°С‚Р°Р»РѕРі
               <ArrowUpRight size={17} />
             </Link>
           </div>
         ) : (
           <>
             <div className="favorites-heading">
-              <h2>Сохранённые объявления</h2>
-              <span>Найдено: {properties.length}</span>
+              <h2>РЎРѕС…СЂР°РЅС‘РЅРЅС‹Рµ РѕР±СЉСЏРІР»РµРЅРёСЏ</h2>
+              <span>РќР°Р№РґРµРЅРѕ: {properties.length}</span>
             </div>
 
             <div className="catalog-grid">
@@ -144,21 +144,21 @@ function Favorites() {
                     <button
                       className="catalog-favorite selected"
                       onClick={() => removeFavorite(property.id)}
-                      aria-label="Удалить из избранного"
+                      aria-label="РЈРґР°Р»РёС‚СЊ РёР· РёР·Р±СЂР°РЅРЅРѕРіРѕ"
                     >
                       <Heart size={20} fill="currentColor" />
                     </button>
 
                     <span className="catalog-property-label">
-                      {property.deal_type === "rent" ? "Аренда" : "Продажа"}
+                      {property.deal_type === "rent" ? "РђСЂРµРЅРґР°" : "РџСЂРѕРґР°Р¶Р°"}
                     </span>
                   </div>
 
                   <div className="catalog-card-info">
                     <div className="catalog-card-price">
-                      {property.price.toLocaleString("ru-RU")} ₽
+                      {property.price.toLocaleString("ru-RU")} в‚Ѕ
                       {property.deal_type === "rent" && (
-                        <span> / мес.</span>
+                        <span> / РјРµСЃ.</span>
                       )}
                     </div>
 
@@ -172,16 +172,16 @@ function Favorites() {
                     <div className="catalog-card-details">
                       <span>
                         <BedDouble size={16} />
-                        {property.rooms} комн.
+                        {property.rooms} РєРѕРјРЅ.
                       </span>
 
                       <span>
                         <Maximize2 size={15} />
-                        {property.area} м²
+                        {property.area} РјВІ
                       </span>
 
                       <span>
-                        {property.floor} из {property.total_floors} этаж
+                        {property.floor} РёР· {property.total_floors} СЌС‚Р°Р¶
                       </span>
                     </div>
 
@@ -189,7 +189,7 @@ function Favorites() {
                       to={`/property/${property.id}`}
                       className="catalog-details-link"
                     >
-                      Подробнее
+                      РџРѕРґСЂРѕР±РЅРµРµ
                       <ArrowUpRight size={17} />
                     </Link>
                   </div>

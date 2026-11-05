@@ -1,4 +1,4 @@
-
+﻿
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -35,7 +35,7 @@ const [reviewComment, setReviewComment] = useState("");
 const [reviewError, setReviewError] = useState("");
 const [reviewLoading, setReviewLoading] = useState(false);
 const [reviewSubmitting, setReviewSubmitting] = useState(false);
-// Заявки на просмотр
+// Р—Р°СЏРІРєРё РЅР° РїСЂРѕСЃРјРѕС‚СЂ
 const [appointmentAt, setAppointmentAt] = useState("");
 const [appointmentMessage, setAppointmentMessage] = useState("");
 const [appointmentStatus, setAppointmentStatus] = useState("");
@@ -45,11 +45,11 @@ const navigate = useNavigate();
 const loadReviews = async () => {
   try {
     const response = await fetch(
-      `http://localhost:8080/api/properties/${id}/reviews`
+      `/api/properties/${id}/reviews`
     );
 
     if (!response.ok) {
-      throw new Error("Не удалось загрузить отзывы");
+      throw new Error("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РѕС‚Р·С‹РІС‹");
     }
 
     const data = await response.json();
@@ -59,7 +59,7 @@ const loadReviews = async () => {
     setReviewCount(data.review_count || 0);
     setDistribution(data.distribution || {});
   } catch (error) {
-    console.error("Ошибка загрузки отзывов:", error);
+    console.error("РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РѕС‚Р·С‹РІРѕРІ:", error);
   } finally {
     setReviewLoading(false);
   }
@@ -70,13 +70,13 @@ useEffect(() => {
   loadReviews();
 
   if (token) {
-    fetch("http://localhost:8080/api/me", {
+    fetch("/api/me", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     })
       .then((response) => {
-        if (!response.ok) throw new Error("Не удалось получить пользователя");
+        if (!response.ok) throw new Error("РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ");
         return response.json();
       })
       .then((data) => setCurrentUserId(data.user?.id ?? null))
@@ -89,12 +89,12 @@ const submitReview = async (event) => {
   setReviewError("");
 
   if (!token) {
-    setReviewError("Войдите в аккаунт, чтобы оставить отзыв.");
+    setReviewError("Р’РѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚, С‡С‚РѕР±С‹ РѕСЃС‚Р°РІРёС‚СЊ РѕС‚Р·С‹РІ.");
     return;
   }
 
   if (!reviewComment.trim()) {
-    setReviewError("Напишите комментарий.");
+    setReviewError("РќР°РїРёС€РёС‚Рµ РєРѕРјРјРµРЅС‚Р°СЂРёР№.");
     return;
   }
 
@@ -102,7 +102,7 @@ const submitReview = async (event) => {
 
   try {
     const response = await fetch(
-      `http://localhost:8080/api/properties/${id}/reviews`,
+      `/api/properties/${id}/reviews`,
       {
         method: "POST",
         headers: {
@@ -119,7 +119,7 @@ const submitReview = async (event) => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || "Не удалось отправить отзыв");
+      throw new Error(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РѕС‚Р·С‹РІ");
     }
 
     setReviewComment("");
@@ -134,11 +134,11 @@ const submitReview = async (event) => {
 };
 
 const deleteReview = async (reviewId) => {
-  if (!window.confirm("Удалить свой отзыв?")) return;
+  if (!window.confirm("РЈРґР°Р»РёС‚СЊ СЃРІРѕР№ РѕС‚Р·С‹РІ?")) return;
 
   try {
     const response = await fetch(
-      `http://localhost:8080/api/reviews/${reviewId}`,
+      `/api/reviews/${reviewId}`,
       {
         method: "DELETE",
         headers: {
@@ -148,7 +148,7 @@ const deleteReview = async (reviewId) => {
     );
 
     if (!response.ok) {
-      throw new Error("Не удалось удалить отзыв");
+      throw new Error("РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РѕС‚Р·С‹РІ");
     }
 
     await loadReviews();
@@ -156,18 +156,18 @@ const deleteReview = async (reviewId) => {
     setReviewError(error.message);
   }
 };
-// Отправка заявки на просмотр
+// РћС‚РїСЂР°РІРєР° Р·Р°СЏРІРєРё РЅР° РїСЂРѕСЃРјРѕС‚СЂ
 const submitAppointment = async (event) => {
   event.preventDefault();
   setAppointmentStatus("");
 
   if (!token) {
-    setAppointmentStatus("Войдите в аккаунт, чтобы записаться на просмотр.");
+    setAppointmentStatus("Р’РѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚, С‡С‚РѕР±С‹ Р·Р°РїРёСЃР°С‚СЊСЃСЏ РЅР° РїСЂРѕСЃРјРѕС‚СЂ.");
     return;
   }
 
   if (!appointmentAt) {
-    setAppointmentStatus("Выберите дату и время.");
+    setAppointmentStatus("Р’С‹Р±РµСЂРёС‚Рµ РґР°С‚Сѓ Рё РІСЂРµРјСЏ.");
     return;
   }
 
@@ -175,7 +175,7 @@ const submitAppointment = async (event) => {
 
   try {
     const response = await fetch(
-      `http://localhost:8080/api/properties/${id}/appointments`,
+      `/api/properties/${id}/appointments`,
       {
         method: "POST",
         headers: {
@@ -192,10 +192,10 @@ const submitAppointment = async (event) => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || "Не удалось отправить заявку");
+      throw new Error(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ Р·Р°СЏРІРєСѓ");
     }
 
-    setAppointmentStatus("Заявка успешно отправлена! Ожидайте ответа владельца.");
+    setAppointmentStatus("Р—Р°СЏРІРєР° СѓСЃРїРµС€РЅРѕ РѕС‚РїСЂР°РІР»РµРЅР°! РћР¶РёРґР°Р№С‚Рµ РѕС‚РІРµС‚Р° РІР»Р°РґРµР»СЊС†Р°.");
     setAppointmentAt("");
     setAppointmentMessage("");
   } catch (error) {
@@ -212,21 +212,21 @@ const submitAppointment = async (event) => {
         setProperty(null);
 
         const response = await fetch(
-          `http://localhost:8080/api/properties/${id}`
+          `/api/properties/${id}`
         );
 
         if (response.status === 404) {
-          throw new Error("Объявление не найдено");
+          throw new Error("РћР±СЉСЏРІР»РµРЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ");
         }
 
         if (!response.ok) {
-          throw new Error("Не удалось загрузить объявление");
+          throw new Error("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ");
         }
 
         const data = await response.json();
         setProperty(data.property);
       } catch (err) {
-        setError(err.message || "Ошибка подключения к серверу");
+        setError(err.message || "РћС€РёР±РєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє СЃРµСЂРІРµСЂСѓ");
       } finally {
         setLoading(false);
       }
@@ -244,7 +244,7 @@ useEffect(() => {
     }
 
     try {
-      const response = await fetch("http://localhost:8080/api/favorites", {
+      const response = await fetch("/api/favorites", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -258,7 +258,7 @@ useEffect(() => {
         data.properties.some((item) => item.id === Number(id))
       );
     } catch (error) {
-      console.error("Ошибка проверки избранного:", error);
+      console.error("РћС€РёР±РєР° РїСЂРѕРІРµСЂРєРё РёР·Р±СЂР°РЅРЅРѕРіРѕ:", error);
     }
   }
 
@@ -274,7 +274,7 @@ async function toggleFavorite() {
 
   try {
     const response = await fetch(
-      `http://localhost:8080/api/favorites/${id}`,
+      `/api/favorites/${id}`,
       {
         method: isFavorite ? "DELETE" : "POST",
         headers: {
@@ -292,13 +292,13 @@ async function toggleFavorite() {
         return;
       }
 
-      alert(data.error || "Не удалось изменить избранное");
+      alert(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ РёР·РјРµРЅРёС‚СЊ РёР·Р±СЂР°РЅРЅРѕРµ");
       return;
     }
 
     setIsFavorite(!isFavorite);
   } catch (error) {
-    alert("Ошибка подключения к серверу");
+    alert("РћС€РёР±РєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє СЃРµСЂРІРµСЂСѓ");
   }
 }
   if (loading) {
@@ -308,8 +308,8 @@ async function toggleFavorite() {
         <main className="property-details-main">
           <div className="catalog-empty">
             <Search size={32} />
-            <h3>Загружаем объявление...</h3>
-            <p>Получаем информацию из базы HOMELY.</p>
+            <h3>Р—Р°РіСЂСѓР¶Р°РµРј РѕР±СЉСЏРІР»РµРЅРёРµ...</h3>
+            <p>РџРѕР»СѓС‡Р°РµРј РёРЅС„РѕСЂРјР°С†РёСЋ РёР· Р±Р°Р·С‹ HOMELY.</p>
           </div>
         </main>
       </div>
@@ -323,10 +323,10 @@ async function toggleFavorite() {
         <main className="property-details-main">
           <div className="catalog-empty">
             <Search size={32} />
-            <h3>{error || "Объявление не найдено"}</h3>
-            <p>Возможно, объявление было удалено или ссылка неверна.</p>
+            <h3>{error || "РћР±СЉСЏРІР»РµРЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ"}</h3>
+            <p>Р’РѕР·РјРѕР¶РЅРѕ, РѕР±СЉСЏРІР»РµРЅРёРµ Р±С‹Р»Рѕ СѓРґР°Р»РµРЅРѕ РёР»Рё СЃСЃС‹Р»РєР° РЅРµРІРµСЂРЅР°.</p>
             <Link to="/catalog" className="catalog-details-link">
-              Вернуться в каталог
+              Р’РµСЂРЅСѓС‚СЊСЃСЏ РІ РєР°С‚Р°Р»РѕРі
             </Link>
           </div>
         </main>
@@ -338,7 +338,7 @@ async function toggleFavorite() {
 
   const formattedPrice = property.price.toLocaleString("ru-RU");
 
-  const floorText = `${property.floor} из ${property.total_floors}`;
+  const floorText = `${property.floor} РёР· ${property.total_floors}`;
 
   return (
     <div className="property-details-page">
@@ -347,7 +347,7 @@ async function toggleFavorite() {
       <main className="property-details-main">
         <Link to="/catalog" className="back-link">
           <ArrowLeft size={18} />
-          Вернуться к объявлениям
+          Р’РµСЂРЅСѓС‚СЊСЃСЏ Рє РѕР±СЉСЏРІР»РµРЅРёСЏРј
         </Link>
 
         <div className="details-heading">
@@ -361,8 +361,8 @@ async function toggleFavorite() {
 
             <p>
               {isRent
-                ? "Квартира для комфортной аренды"
-                : "Квартира для покупки"}
+                ? "РљРІР°СЂС‚РёСЂР° РґР»СЏ РєРѕРјС„РѕСЂС‚РЅРѕР№ Р°СЂРµРЅРґС‹"
+                : "РљРІР°СЂС‚РёСЂР° РґР»СЏ РїРѕРєСѓРїРєРё"}
             </p>
           </div>
 
@@ -376,7 +376,7 @@ async function toggleFavorite() {
               size={20}
               fill={isFavorite ? "currentColor" : "none"}
             />
-            {isFavorite ? "В избранном" : "В избранное"}
+            {isFavorite ? "Р’ РёР·Р±СЂР°РЅРЅРѕРј" : "Р’ РёР·Р±СЂР°РЅРЅРѕРµ"}
           </button>
         </div>
 
@@ -392,7 +392,7 @@ async function toggleFavorite() {
             <button className="gallery-thumbnail active">
               <img
                 src={property.image}
-                alt="Фотография квартиры"
+                alt="Р¤РѕС‚РѕРіСЂР°С„РёСЏ РєРІР°СЂС‚РёСЂС‹"
               />
             </button>
           </div>
@@ -402,21 +402,21 @@ async function toggleFavorite() {
           <div className="details-main-content">
             <section className="details-section">
               <div className="details-price">
-                {formattedPrice} ₽
+                {formattedPrice} в‚Ѕ
                 {isRent && (
                   <span style={{ fontSize: "16px", fontWeight: 400 }}>
-                    {" "}/ месяц
+                    {" "}/ РјРµСЃСЏС†
                   </span>
                 )}
               </div>
 
-              <h2>Характеристики квартиры</h2>
+              <h2>РҐР°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё РєРІР°СЂС‚РёСЂС‹</h2>
 
               <div className="characteristics-grid">
                 <div className="characteristic">
                   <BedDouble size={22} />
                   <div>
-                    <span>Комнат</span>
+                    <span>РљРѕРјРЅР°С‚</span>
                     <strong>{property.rooms}</strong>
                   </div>
                 </div>
@@ -424,15 +424,15 @@ async function toggleFavorite() {
                 <div className="characteristic">
                   <Maximize2 size={22} />
                   <div>
-                    <span>Площадь</span>
-                    <strong>{property.area} м²</strong>
+                    <span>РџР»РѕС‰Р°РґСЊ</span>
+                    <strong>{property.area} РјВІ</strong>
                   </div>
                 </div>
 
                 <div className="characteristic">
                   <Building2 size={22} />
                   <div>
-                    <span>Этаж</span>
+                    <span>Р­С‚Р°Р¶</span>
                     <strong>{floorText}</strong>
                   </div>
                 </div>
@@ -440,22 +440,22 @@ async function toggleFavorite() {
                 <div className="characteristic">
                   <ShieldCheck size={22} />
                   <div>
-                    <span>Тип объявления</span>
-                    <strong>{isRent ? "Аренда" : "Продажа"}</strong>
+                    <span>РўРёРї РѕР±СЉСЏРІР»РµРЅРёСЏ</span>
+                    <strong>{isRent ? "РђСЂРµРЅРґР°" : "РџСЂРѕРґР°Р¶Р°"}</strong>
                   </div>
                 </div>
               </div>
             </section>
 
             <section className="details-section">
-              <h2>Описание</h2>
+              <h2>РћРїРёСЃР°РЅРёРµ</h2>
 
               <p className="details-description">
                 {property.description}
               </p>
             </section>
             <section className="details-section">
-              <h2>Удобства и особенности</h2>
+              <h2>РЈРґРѕР±СЃС‚РІР° Рё РѕСЃРѕР±РµРЅРЅРѕСЃС‚Рё</h2>
 
               {property.amenities && property.amenities.length > 0 ? (
                 <div className="details-amenities">
@@ -468,50 +468,50 @@ async function toggleFavorite() {
                 </div>
               ) : (
                 <p className="details-amenities-empty">
-                  Владелец пока не указал удобства и особенности этой недвижимости.
+                  Р’Р»Р°РґРµР»РµС† РїРѕРєР° РЅРµ СѓРєР°Р·Р°Р» СѓРґРѕР±СЃС‚РІР° Рё РѕСЃРѕР±РµРЅРЅРѕСЃС‚Рё СЌС‚РѕР№ РЅРµРґРІРёР¶РёРјРѕСЃС‚Рё.
                 </p>
               )}
             </section>
             <section className="details-section">
-              <h2>Информация об объекте</h2>
+              <h2>РРЅС„РѕСЂРјР°С†РёСЏ РѕР± РѕР±СЉРµРєС‚Рµ</h2>
 
               <div className="pros-cons-list">
                 <div className="pros-cons-item positive">
                   <ShieldCheck size={19} />
                   <span>
-                    Данные о квартире загружены непосредственно из базы HOMELY.
+                    Р”Р°РЅРЅС‹Рµ Рѕ РєРІР°СЂС‚РёСЂРµ Р·Р°РіСЂСѓР¶РµРЅС‹ РЅРµРїРѕСЃСЂРµРґСЃС‚РІРµРЅРЅРѕ РёР· Р±Р°Р·С‹ HOMELY.
                   </span>
                 </div>
 
                 <div className="pros-cons-item positive">
                   <ShieldCheck size={19} />
                   <span>
-                    Указаны фактические параметры объявления: площадь,
-                    количество комнат и этаж.
+                    РЈРєР°Р·Р°РЅС‹ С„Р°РєС‚РёС‡РµСЃРєРёРµ РїР°СЂР°РјРµС‚СЂС‹ РѕР±СЉСЏРІР»РµРЅРёСЏ: РїР»РѕС‰Р°РґСЊ,
+                    РєРѕР»РёС‡РµСЃС‚РІРѕ РєРѕРјРЅР°С‚ Рё СЌС‚Р°Р¶.
                   </span>
                 </div>
               </div>
             </section>
 
             <section className="details-section">
-              <h2>Окружение и инфраструктура</h2>
+              <h2>РћРєСЂСѓР¶РµРЅРёРµ Рё РёРЅС„СЂР°СЃС‚СЂСѓРєС‚СѓСЂР°</h2>
 
               <div className="review-placeholder">
                 <MapPin size={26} />
 
                 <div>
-                  <strong>Расположение объекта</strong>
+                  <strong>Р Р°СЃРїРѕР»РѕР¶РµРЅРёРµ РѕР±СЉРµРєС‚Р°</strong>
                   <p>
-                    {property.address}. Дополнительную информацию
-                    об освещённости, дворе, транспорте и местах
-                    поблизости добавим в следующих этапах проекта.
+                    {property.address}. Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅСѓСЋ РёРЅС„РѕСЂРјР°С†РёСЋ
+                    РѕР± РѕСЃРІРµС‰С‘РЅРЅРѕСЃС‚Рё, РґРІРѕСЂРµ, С‚СЂР°РЅСЃРїРѕСЂС‚Рµ Рё РјРµСЃС‚Р°С…
+                    РїРѕР±Р»РёР·РѕСЃС‚Рё РґРѕР±Р°РІРёРј РІ СЃР»РµРґСѓСЋС‰РёС… СЌС‚Р°РїР°С… РїСЂРѕРµРєС‚Р°.
                   </p>
                 </div>
               </div>
             </section>
 
             <section className="details-section reviews-section">
-  <h2>Отзывы о жилье</h2>
+  <h2>РћС‚Р·С‹РІС‹ Рѕ Р¶РёР»СЊРµ</h2>
 
   <div className="reviews-summary">
     <div className="rating-average">
@@ -529,7 +529,7 @@ async function toggleFavorite() {
       </div>
 
       <span>
-        {reviewCount} {reviewCount === 1 ? "отзыв" : "отзывов"}
+        {reviewCount} {reviewCount === 1 ? "РѕС‚Р·С‹РІ" : "РѕС‚Р·С‹РІРѕРІ"}
       </span>
     </div>
 
@@ -542,7 +542,7 @@ async function toggleFavorite() {
 
         return (
           <div className="rating-row" key={rating}>
-            <span>{rating} ★</span>
+            <span>{rating} в…</span>
 
             <div className="rating-bar">
               <div
@@ -561,14 +561,14 @@ async function toggleFavorite() {
   {token ? (
     reviews.some((review) => review.user_id === currentUserId) ? (
       <p className="review-notice">
-        Вы уже оставили отзыв об этой квартире.
+        Р’С‹ СѓР¶Рµ РѕСЃС‚Р°РІРёР»Рё РѕС‚Р·С‹РІ РѕР± СЌС‚РѕР№ РєРІР°СЂС‚РёСЂРµ.
       </p>
     ) : (
       <form className="review-form" onSubmit={submitReview}>
-        <h3>Оставить отзыв</h3>
+        <h3>РћСЃС‚Р°РІРёС‚СЊ РѕС‚Р·С‹РІ</h3>
 
         <div className="review-rating-select">
-          <span>Ваша оценка:</span>
+          <span>Р’Р°С€Р° РѕС†РµРЅРєР°:</span>
 
           <div className="review-stars">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -577,7 +577,7 @@ async function toggleFavorite() {
                 key={star}
                 className="review-star-button"
                 onClick={() => setSelectedRating(star)}
-                aria-label={`Оценка ${star}`}
+                aria-label={`РћС†РµРЅРєР° ${star}`}
               >
                 <Star
                   size={27}
@@ -591,7 +591,7 @@ async function toggleFavorite() {
 
         <textarea
           className="review-textarea"
-          placeholder="Расскажите о квартире, доме или районе..."
+          placeholder="Р Р°СЃСЃРєР°Р¶РёС‚Рµ Рѕ РєРІР°СЂС‚РёСЂРµ, РґРѕРјРµ РёР»Рё СЂР°Р№РѕРЅРµ..."
           value={reviewComment}
           onChange={(event) => setReviewComment(event.target.value)}
           maxLength={2000}
@@ -607,13 +607,13 @@ async function toggleFavorite() {
           className="review-submit"
           disabled={reviewSubmitting}
         >
-          {reviewSubmitting ? "Отправка..." : "Опубликовать отзыв"}
+          {reviewSubmitting ? "РћС‚РїСЂР°РІРєР°..." : "РћРїСѓР±Р»РёРєРѕРІР°С‚СЊ РѕС‚Р·С‹РІ"}
         </button>
       </form>
     )
   ) : (
     <p className="review-notice">
-      <Link to="/login">Войдите в аккаунт</Link>, чтобы оставить отзыв.
+      <Link to="/login">Р’РѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚</Link>, С‡С‚РѕР±С‹ РѕСЃС‚Р°РІРёС‚СЊ РѕС‚Р·С‹РІ.
     </p>
   )}
 
@@ -623,10 +623,10 @@ async function toggleFavorite() {
 
   <div className="reviews-list">
     {reviewLoading ? (
-      <p>Загрузка отзывов...</p>
+      <p>Р—Р°РіСЂСѓР·РєР° РѕС‚Р·С‹РІРѕРІ...</p>
     ) : reviews.length === 0 ? (
       <p className="review-empty">
-        Пока нет отзывов. Станьте первым!
+        РџРѕРєР° РЅРµС‚ РѕС‚Р·С‹РІРѕРІ. РЎС‚Р°РЅСЊС‚Рµ РїРµСЂРІС‹Рј!
       </p>
     ) : (
       reviews.map((review) => (
@@ -660,7 +660,7 @@ async function toggleFavorite() {
               onClick={() => deleteReview(review.id)}
             >
               <Trash2 size={15} />
-              Удалить отзыв
+              РЈРґР°Р»РёС‚СЊ РѕС‚Р·С‹РІ
             </button>
           )}
         </article>
@@ -673,19 +673,19 @@ async function toggleFavorite() {
           <aside className="details-sidebar">
             <div className="contact-card">
               <div className="contact-price">
-                {formattedPrice} ₽
+                {formattedPrice} в‚Ѕ
               </div>
 
               <span className="contact-subtitle">
-                {isRent ? "Аренда квартиры" : "Продажа квартиры"}
+                {isRent ? "РђСЂРµРЅРґР° РєРІР°СЂС‚РёСЂС‹" : "РџСЂРѕРґР°Р¶Р° РєРІР°СЂС‚РёСЂС‹"}
               </span>
 
               {token ? (
   <form className="appointment-form" onSubmit={submitAppointment}>
-    <h3>Записаться на просмотр</h3>
+    <h3>Р—Р°РїРёСЃР°С‚СЊСЃСЏ РЅР° РїСЂРѕСЃРјРѕС‚СЂ</h3>
 
     <label htmlFor="appointment-date">
-      Желаемая дата и время
+      Р–РµР»Р°РµРјР°СЏ РґР°С‚Р° Рё РІСЂРµРјСЏ
     </label>
 
     <input
@@ -700,14 +700,14 @@ async function toggleFavorite() {
     />
 
     <label htmlFor="appointment-message">
-      Сообщение владельцу
+      РЎРѕРѕР±С‰РµРЅРёРµ РІР»Р°РґРµР»СЊС†Сѓ
     </label>
 
     <textarea
       id="appointment-message"
       value={appointmentMessage}
       onChange={(event) => setAppointmentMessage(event.target.value)}
-      placeholder="Например, хотел бы посмотреть квартиру вечером..."
+      placeholder="РќР°РїСЂРёРјРµСЂ, С…РѕС‚РµР» Р±С‹ РїРѕСЃРјРѕС‚СЂРµС‚СЊ РєРІР°СЂС‚РёСЂСѓ РІРµС‡РµСЂРѕРј..."
       rows={3}
       maxLength={1000}
     />
@@ -721,21 +721,21 @@ async function toggleFavorite() {
       className="contact-button"
       disabled={appointmentSubmitting}
     >
-      {appointmentSubmitting ? "Отправка..." : "Отправить заявку"}
+      {appointmentSubmitting ? "РћС‚РїСЂР°РІРєР°..." : "РћС‚РїСЂР°РІРёС‚СЊ Р·Р°СЏРІРєСѓ"}
     </button>
   </form>
 ) : (
   <>
-    <p>Войдите в аккаунт, чтобы записаться на просмотр.</p>
+    <p>Р’РѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚, С‡С‚РѕР±С‹ Р·Р°РїРёСЃР°С‚СЊСЃСЏ РЅР° РїСЂРѕСЃРјРѕС‚СЂ.</p>
 
     <Link to="/login" className="contact-button">
-      Войти в аккаунт
+      Р’РѕР№С‚Рё РІ Р°РєРєР°СѓРЅС‚
     </Link>
   </>
 )}
               <div className="contact-note">
                 <ShieldCheck size={17} />
-                HOMELY помогает выбрать жильё осознанно
+                HOMELY РїРѕРјРѕРіР°РµС‚ РІС‹Р±СЂР°С‚СЊ Р¶РёР»СЊС‘ РѕСЃРѕР·РЅР°РЅРЅРѕ
               </div>
             </div>
           </aside>
@@ -746,3 +746,4 @@ async function toggleFavorite() {
 }
 
 export default PropertyDetails;
+

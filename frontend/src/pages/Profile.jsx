@@ -1,4 +1,4 @@
-
+﻿
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -42,10 +42,10 @@ const [loading, setLoading] = useState(true);
   appointmentsResponse,
   receivedResponse,
 ] = await Promise.all([
-  fetch("http://localhost:8080/api/me", { headers }),
-  fetch("http://localhost:8080/api/my/properties", { headers }),
-  fetch("http://localhost:8080/api/my/appointments", { headers }),
-  fetch("http://localhost:8080/api/my/received-appointments", { headers }),
+  fetch("/api/me", { headers }),
+  fetch("/api/my/properties", { headers }),
+  fetch("/api/my/appointments", { headers }),
+  fetch("/api/my/received-appointments", { headers }),
 ]);
 
         if (!profileResponse.ok || !propertiesResponse.ok) {
@@ -81,7 +81,7 @@ setReceivedAppointments(receivedData.appointments || []);
 
   async function deleteProperty(id) {
     const confirmed = window.confirm(
-      "Вы действительно хотите удалить это объявление?"
+      "Р’С‹ РґРµР№СЃС‚РІРёС‚РµР»СЊРЅРѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ СЌС‚Рѕ РѕР±СЉСЏРІР»РµРЅРёРµ?"
     );
 
     if (!confirmed) return;
@@ -90,7 +90,7 @@ setReceivedAppointments(receivedData.appointments || []);
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/properties/${id}`,
+        `/api/properties/${id}`,
         {
           method: "DELETE",
           headers: {
@@ -102,7 +102,7 @@ setReceivedAppointments(receivedData.appointments || []);
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.error || "Не удалось удалить объявление");
+        alert(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ");
         return;
       }
 
@@ -110,16 +110,16 @@ setReceivedAppointments(receivedData.appointments || []);
         previous.filter((property) => property.id !== id)
       );
     } catch {
-      alert("Ошибка соединения с сервером");
+      alert("РћС€РёР±РєР° СЃРѕРµРґРёРЅРµРЅРёСЏ СЃ СЃРµСЂРІРµСЂРѕРј");
     }
   }
-// Одобрение или отклонение заявки
+// РћРґРѕР±СЂРµРЅРёРµ РёР»Рё РѕС‚РєР»РѕРЅРµРЅРёРµ Р·Р°СЏРІРєРё
 async function updateAppointmentStatus(id, status) {
   const token = localStorage.getItem("authToken");
 
   try {
     const response = await fetch(
-      `http://localhost:8080/api/appointments/${id}/status`,
+      `/api/appointments/${id}/status`,
       {
         method: "PATCH",
         headers: {
@@ -133,7 +133,7 @@ async function updateAppointmentStatus(id, status) {
     const data = await response.json();
 
     if (!response.ok) {
-      alert(data.error || "Не удалось изменить статус заявки");
+      alert(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ РёР·РјРµРЅРёС‚СЊ СЃС‚Р°С‚СѓСЃ Р·Р°СЏРІРєРё");
       return;
     }
 
@@ -145,7 +145,7 @@ async function updateAppointmentStatus(id, status) {
       )
     );
   } catch {
-    alert("Ошибка соединения с сервером");
+    alert("РћС€РёР±РєР° СЃРѕРµРґРёРЅРµРЅРёСЏ СЃ СЃРµСЂРІРµСЂРѕРј");
   }
 }
   function logout() {
@@ -161,32 +161,32 @@ async function updateAppointmentStatus(id, status) {
       <main className="auth-container">
         <div className="auth-box profile-box">
           {loading ? (
-            <p>Загрузка профиля...</p>
+            <p>Р—Р°РіСЂСѓР·РєР° РїСЂРѕС„РёР»СЏ...</p>
           ) : user ? (
             <>
               <div className="auth-icon">
                 <UserRound size={27} />
               </div>
 
-              <h1>Личный кабинет</h1>
+              <h1>Р›РёС‡РЅС‹Р№ РєР°Р±РёРЅРµС‚</h1>
 
               <p className="auth-subtitle">
-                Управляйте аккаунтом и своими объявлениями.
+                РЈРїСЂР°РІР»СЏР№С‚Рµ Р°РєРєР°СѓРЅС‚РѕРј Рё СЃРІРѕРёРјРё РѕР±СЉСЏРІР»РµРЅРёСЏРјРё.
               </p>
 
               <div className="profile-info">
                 <div className="profile-row">
                   <UserRound size={20} />
                   <div>
-                    <span>Имя</span>
-                    <strong>{user.name || "Пользователь"}</strong>
+                    <span>РРјСЏ</span>
+                    <strong>{user.name || "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ"}</strong>
                   </div>
                 </div>
 
                 <div className="profile-row">
                   <Mail size={20} />
                   <div>
-                    <span>Электронная почта</span>
+                    <span>Р­Р»РµРєС‚СЂРѕРЅРЅР°СЏ РїРѕС‡С‚Р°</span>
                     <strong>{user.email}</strong>
                   </div>
                 </div>
@@ -194,20 +194,20 @@ async function updateAppointmentStatus(id, status) {
 
               <div className="profile-property-heading">
                 <div>
-                  <h2>Мои объявления</h2>
-                  <p>Опубликовано: {properties.length}</p>
+                  <h2>РњРѕРё РѕР±СЉСЏРІР»РµРЅРёСЏ</h2>
+                  <p>РћРїСѓР±Р»РёРєРѕРІР°РЅРѕ: {properties.length}</p>
                 </div>
 
                 <Link to="/add-property" className="profile-add-button">
-                  <Plus size={17} /> Разместить
+                  <Plus size={17} /> Р Р°Р·РјРµСЃС‚РёС‚СЊ
                 </Link>
               </div>
 
               {properties.length === 0 ? (
                 <div className="profile-empty">
                   <Home size={30} />
-                  <p>У вас пока нет объявлений.</p>
-                  <span>Разместите первое объявление о недвижимости.</span>
+                  <p>РЈ РІР°СЃ РїРѕРєР° РЅРµС‚ РѕР±СЉСЏРІР»РµРЅРёР№.</p>
+                  <span>Р Р°Р·РјРµСЃС‚РёС‚Рµ РїРµСЂРІРѕРµ РѕР±СЉСЏРІР»РµРЅРёРµ Рѕ РЅРµРґРІРёР¶РёРјРѕСЃС‚Рё.</span>
                 </div>
               ) : (
                 <div className="profile-property-list">
@@ -224,19 +224,19 @@ async function updateAppointmentStatus(id, status) {
                         </span>
 
                         <b>
-                          {Number(property.price).toLocaleString("ru-RU")} ₽
-                          {property.deal_type === "rent" ? " / мес." : ""}
+                          {Number(property.price).toLocaleString("ru-RU")} в‚Ѕ
+                          {property.deal_type === "rent" ? " / РјРµСЃ." : ""}
                         </b>
 
                         <Link to={`/property/${property.id}`}>
-                          Посмотреть объявление
+                          РџРѕСЃРјРѕС‚СЂРµС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ
                         </Link>
                       </div>
 
                       <button
                         className="profile-delete-button"
                         onClick={() => deleteProperty(property.id)}
-                        title="Удалить объявление"
+                        title="РЈРґР°Р»РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -244,13 +244,13 @@ async function updateAppointmentStatus(id, status) {
                   ))}
                 </div>
               )}
-{/* Полученные заявки */}
+{/* РџРѕР»СѓС‡РµРЅРЅС‹Рµ Р·Р°СЏРІРєРё */}
 <section className="appointments-section">
-  <h2>Заявки на мои объявления</h2>
+  <h2>Р—Р°СЏРІРєРё РЅР° РјРѕРё РѕР±СЉСЏРІР»РµРЅРёСЏ</h2>
 
   {receivedAppointments.length === 0 ? (
     <p className="appointments-empty">
-      Пока никто не записался на просмотр ваших объектов.
+      РџРѕРєР° РЅРёРєС‚Рѕ РЅРµ Р·Р°РїРёСЃР°Р»СЃСЏ РЅР° РїСЂРѕСЃРјРѕС‚СЂ РІР°С€РёС… РѕР±СЉРµРєС‚РѕРІ.
     </p>
   ) : (
     <div className="appointments-list">
@@ -264,7 +264,7 @@ async function updateAppointmentStatus(id, status) {
           </p>
 
           <p>
-            Заявитель: {appointment.requester_name}
+            Р—Р°СЏРІРёС‚РµР»СЊ: {appointment.requester_name}
           </p>
 
           <p>
@@ -272,21 +272,21 @@ async function updateAppointmentStatus(id, status) {
           </p>
 
           <p>
-            Дата просмотра:{" "}
+            Р”Р°С‚Р° РїСЂРѕСЃРјРѕС‚СЂР°:{" "}
             {new Date(appointment.appointment_at).toLocaleString("ru-RU")}
           </p>
 
           {appointment.message && (
-            <p>Сообщение: {appointment.message}</p>
+            <p>РЎРѕРѕР±С‰РµРЅРёРµ: {appointment.message}</p>
           )}
 
           <p>
-            Статус: <strong>
+            РЎС‚Р°С‚СѓСЃ: <strong>
               {appointment.status === "pending"
-                ? "Ожидает ответа"
+                ? "РћР¶РёРґР°РµС‚ РѕС‚РІРµС‚Р°"
                 : appointment.status === "approved"
-                ? "Одобрена"
-                : "Отклонена"}
+                ? "РћРґРѕР±СЂРµРЅР°"
+                : "РћС‚РєР»РѕРЅРµРЅР°"}
             </strong>
           </p>
 
@@ -297,7 +297,7 @@ async function updateAppointmentStatus(id, status) {
                   updateAppointmentStatus(appointment.id, "approved")
                 }
               >
-                Одобрить
+                РћРґРѕР±СЂРёС‚СЊ
               </button>
 
               <button
@@ -305,7 +305,7 @@ async function updateAppointmentStatus(id, status) {
                   updateAppointmentStatus(appointment.id, "rejected")
                 }
               >
-                Отклонить
+                РћС‚РєР»РѕРЅРёС‚СЊ
               </button>
             </div>
           )}
@@ -315,13 +315,13 @@ async function updateAppointmentStatus(id, status) {
   )}
 </section>
 
-{/* Отправленные заявки */}
+{/* РћС‚РїСЂР°РІР»РµРЅРЅС‹Рµ Р·Р°СЏРІРєРё */}
 <section className="appointments-section">
-  <h2>Мои заявки на просмотр</h2>
+  <h2>РњРѕРё Р·Р°СЏРІРєРё РЅР° РїСЂРѕСЃРјРѕС‚СЂ</h2>
 
   {appointments.length === 0 ? (
     <p className="appointments-empty">
-      Вы пока не записывались на просмотр недвижимости.
+      Р’С‹ РїРѕРєР° РЅРµ Р·Р°РїРёСЃС‹РІР°Р»РёСЃСЊ РЅР° РїСЂРѕСЃРјРѕС‚СЂ РЅРµРґРІРёР¶РёРјРѕСЃС‚Рё.
     </p>
   ) : (
     <div className="appointments-list">
@@ -335,18 +335,18 @@ async function updateAppointmentStatus(id, status) {
           </p>
 
           <p>
-            Дата просмотра:{" "}
+            Р”Р°С‚Р° РїСЂРѕСЃРјРѕС‚СЂР°:{" "}
             {new Date(appointment.appointment_at).toLocaleString("ru-RU")}
           </p>
 
           {appointment.message && (
-            <p>Ваше сообщение: {appointment.message}</p>
+            <p>Р’Р°С€Рµ СЃРѕРѕР±С‰РµРЅРёРµ: {appointment.message}</p>
           )}
           {appointment.status === "approved" && (
   <div className="owner-contacts">
-    <strong>Контакты владельца:</strong>
+    <strong>РљРѕРЅС‚Р°РєС‚С‹ РІР»Р°РґРµР»СЊС†Р°:</strong>
 
-    <p>Имя: {appointment.owner_name || "Не указано"}</p>
+    <p>РРјСЏ: {appointment.owner_name || "РќРµ СѓРєР°Р·Р°РЅРѕ"}</p>
 
     <p>
       Email:{" "}
@@ -355,18 +355,18 @@ async function updateAppointmentStatus(id, status) {
           {appointment.owner_email}
         </a>
       ) : (
-        "Не указан"
+        "РќРµ СѓРєР°Р·Р°РЅ"
       )}
     </p>
   </div>
 )}
           <p>
-            Статус: <strong>
+            РЎС‚Р°С‚СѓСЃ: <strong>
               {appointment.status === "pending"
-                ? "Ожидает ответа"
+                ? "РћР¶РёРґР°РµС‚ РѕС‚РІРµС‚Р°"
                 : appointment.status === "approved"
-                ? "Одобрена"
-                : "Отклонена"}
+                ? "РћРґРѕР±СЂРµРЅР°"
+                : "РћС‚РєР»РѕРЅРµРЅР°"}
             </strong>
           </p>
         </div>
@@ -375,11 +375,11 @@ async function updateAppointmentStatus(id, status) {
   )}
 </section>
               <Link to="/catalog" className="profile-catalog">
-                <Home size={18} /> Перейти в каталог
+                <Home size={18} /> РџРµСЂРµР№С‚Рё РІ РєР°С‚Р°Р»РѕРі
               </Link>
 
               <button className="profile-logout" onClick={logout}>
-                <LogOut size={18} /> Выйти из аккаунта
+                <LogOut size={18} /> Р’С‹Р№С‚Рё РёР· Р°РєРєР°СѓРЅС‚Р°
               </button>
             </>
           ) : (
@@ -388,18 +388,18 @@ async function updateAppointmentStatus(id, status) {
                 <UserRound size={27} />
               </div>
 
-              <h1>Вы не вошли в аккаунт</h1>
+              <h1>Р’С‹ РЅРµ РІРѕС€Р»Рё РІ Р°РєРєР°СѓРЅС‚</h1>
 
               <p className="auth-subtitle">
-                Войдите или зарегистрируйтесь, чтобы пользоваться личным кабинетом.
+                Р’РѕР№РґРёС‚Рµ РёР»Рё Р·Р°СЂРµРіРёСЃС‚СЂРёСЂСѓР№С‚РµСЃСЊ, С‡С‚РѕР±С‹ РїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ Р»РёС‡РЅС‹Рј РєР°Р±РёРЅРµС‚РѕРј.
               </p>
 
               <Link to="/login" className="auth-submit auth-link-button">
-                Войти
+                Р’РѕР№С‚Рё
               </Link>
 
               <p className="auth-bottom">
-                Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+                РќРµС‚ Р°РєРєР°СѓРЅС‚Р°? <Link to="/register">Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ</Link>
               </p>
             </>
           )}
@@ -410,3 +410,4 @@ async function updateAppointmentStatus(id, status) {
 }
 
 export default Profile;
+
