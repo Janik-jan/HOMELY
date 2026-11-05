@@ -1,4 +1,4 @@
-﻿
+
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -40,7 +40,7 @@ const [maxPrice, setMaxPrice] = useState("");
         const response = await fetch(API_URL);
 
         if (!response.ok) {
-          throw new Error("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёСЏ");
+          throw new Error("Не удалось загрузить объявления");
         }
 
         const data = await response.json();
@@ -48,18 +48,18 @@ const [maxPrice, setMaxPrice] = useState("");
         const formattedProperties = data.properties.map((property) => ({
           ...property,
           type: property.deal_type,
-          period: property.deal_type === "rent" ? "РјРµСЃ." : "",
-          floor: `${property.floor} РёР· ${property.total_floors}`,
+          period: property.deal_type === "rent" ? "мес." : "",
+          floor: `${property.floor} из ${property.total_floors}`,
           tags:
             property.deal_type === "rent"
-              ? ["Р”Р»СЏ Р°СЂРµРЅРґС‹", "РЈСЋС‚РЅРѕРµ Р¶РёР»СЊС‘"]
-              : ["Р”Р»СЏ РїРѕРєСѓРїРєРё", "РќРµРґРІРёР¶РёРјРѕСЃС‚СЊ"],
+              ? ["Для аренды", "Уютное жильё"]
+              : ["Для покупки", "Недвижимость"],
         }));
 
         setProperties(formattedProperties);
       } catch (err) {
         setError(
-          "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРєР»СЋС‡РёС‚СЊСЃСЏ Рє HOMELY API. РџСЂРѕРІРµСЂСЊС‚Рµ, Р·Р°РїСѓС‰РµРЅ Р»Рё СЃРµСЂРІРµСЂ."
+          "Не удалось подключиться к HOMELY API. Проверьте, запущен ли сервер."
         );
       } finally {
         setLoading(false);
@@ -89,7 +89,7 @@ useEffect(() => {
       const data = await response.json();
       setFavorites(data.properties.map((property) => property.id));
     } catch (error) {
-      console.error("РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РёР·Р±СЂР°РЅРЅРѕРіРѕ:", error);
+      console.error("Ошибка загрузки избранного:", error);
     }
   }
 
@@ -165,7 +165,7 @@ return (
         return;
       }
 
-      alert(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ РёР·РјРµРЅРёС‚СЊ РёР·Р±СЂР°РЅРЅРѕРµ");
+      alert(data.error || "Не удалось изменить избранное");
       return;
     }
 
@@ -175,7 +175,7 @@ return (
         : [...current, id]
     );
   } catch (error) {
-    alert("РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРєР»СЋС‡РёС‚СЊСЃСЏ Рє СЃРµСЂРІРµСЂСѓ");
+    alert("Не удалось подключиться к серверу");
   }
 }
 
@@ -195,14 +195,14 @@ return (
         <div className="catalog-intro">
           <div className="catalog-eyebrow">
             <span />
-            РљРђРўРђР›РћР“ HOMELY
+            КАТАЛОГ HOMELY
           </div>
 
-          <h1>РќР°Р№РґРёС‚Рµ РјРµСЃС‚Рѕ РґР»СЏ Р¶РёР·РЅРё</h1>
+          <h1>Найдите место для жизни</h1>
 
           <p>
-            РЎСЂР°РІРЅРёРІР°Р№С‚Рµ РЅРµ С‚РѕР»СЊРєРѕ РєРІР°СЂС‚РёСЂС‹, РЅРѕ Рё СѓСЃР»РѕРІРёСЏ,
-            РІ РєРѕС‚РѕСЂС‹С… РІР°Рј РїСЂРµРґСЃС‚РѕРёС‚ Р¶РёС‚СЊ.
+            Сравнивайте не только квартиры, но и условия,
+            в которых вам предстоит жить.
           </p>
         </div>
 
@@ -212,14 +212,14 @@ return (
               className={dealType === "rent" ? "active" : ""}
               onClick={() => setDealType("rent")}
             >
-              РђСЂРµРЅРґР°
+              Аренда
             </button>
 
             <button
               className={dealType === "sale" ? "active" : ""}
               onClick={() => setDealType("sale")}
             >
-              РџРѕРєСѓРїРєР°
+              Покупка
             </button>
           </div>
 
@@ -228,7 +228,7 @@ return (
 
             <input
               type="text"
-              placeholder="Р’РІРµРґРёС‚Рµ РіРѕСЂРѕРґ, СЂР°Р№РѕРЅ РёР»Рё РЅР°Р·РІР°РЅРёРµ"
+              placeholder="Введите город, район или название"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -239,12 +239,12 @@ return (
           <aside className="catalog-filters">
             <div className="filters-heading">
               <SlidersHorizontal size={19} />
-              <h2>Р¤РёР»СЊС‚СЂС‹</h2>
+              <h2>Фильтры</h2>
             </div>
 
             <div className="filter-group">
               <label htmlFor="rooms-filter">
-                РљРѕР»РёС‡РµСЃС‚РІРѕ РєРѕРјРЅР°С‚
+                Количество комнат
               </label>
 
               <select
@@ -252,44 +252,44 @@ return (
                 value={rooms}
                 onChange={(event) => setRooms(event.target.value)}
               >
-                <option value="all">Р›СЋР±РѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ</option>
-<option value="1">1 РєРѕРјРЅР°С‚Р°</option>
-<option value="2">2 РєРѕРјРЅР°С‚С‹</option>
-<option value="3">3 РєРѕРјРЅР°С‚С‹</option>
-<option value="4+">4 Рё Р±РѕР»РµРµ РєРѕРјРЅР°С‚</option>
+                <option value="all">Любое количество</option>
+<option value="1">1 комната</option>
+<option value="2">2 комнаты</option>
+<option value="3">3 комнаты</option>
+<option value="4+">4 и более комнат</option>
               </select>
             </div>
 <div className="filter-group">
   <label htmlFor="min-price-filter">
-    РњРёРЅРёРјР°Р»СЊРЅР°СЏ С†РµРЅР°, в‚Ѕ
+    Минимальная цена, ₽
   </label>
 
   <input
     id="min-price-filter"
     type="number"
     min="0"
-    placeholder="РћС‚ Р»СЋР±РѕР№ СЃСѓРјРјС‹"
+    placeholder="От любой суммы"
     value={minPrice}
     onChange={(event) => setMinPrice(event.target.value)}
   />
 </div>
             <div className="filter-group">
               <label htmlFor="price-filter">
-                РњР°РєСЃРёРјР°Р»СЊРЅР°СЏ С†РµРЅР°, в‚Ѕ
+                Максимальная цена, ₽
               </label>
 
               <input
                 id="price-filter"
                 type="number"
                 min="0"
-                placeholder="Р‘РµР· РѕРіСЂР°РЅРёС‡РµРЅРёР№"
+                placeholder="Без ограничений"
                 value={maxPrice}
                 onChange={(event) => setMaxPrice(event.target.value)}
               />
             </div>
 
             <button className="reset-filters" onClick={resetFilters}>
-              РЎР±СЂРѕСЃРёС‚СЊ С„РёР»СЊС‚СЂС‹
+              Сбросить фильтры
             </button>
           </aside>
 
@@ -298,26 +298,26 @@ return (
               <div>
                 <h2>
                   {dealType === "rent"
-                    ? "РљРІР°СЂС‚РёСЂС‹ РІ Р°СЂРµРЅРґСѓ"
-                    : "РљРІР°СЂС‚РёСЂС‹ РЅР° РїСЂРѕРґР°Р¶Сѓ"}
+                    ? "Квартиры в аренду"
+                    : "Квартиры на продажу"}
                 </h2>
 
                 <p>
-                  РќР°Р№РґРµРЅРѕ РІР°СЂРёР°РЅС‚РѕРІ: {filteredProperties.length}
+                  Найдено вариантов: {filteredProperties.length}
                 </p>
               </div>
 
               <div className="catalog-sort">
-                <label htmlFor="sort-filter">РЎРѕСЂС‚РёСЂРѕРІРєР°:</label>
+                <label htmlFor="sort-filter">Сортировка:</label>
 
                 <select
                   id="sort-filter"
                   value={sort}
                   onChange={(event) => setSort(event.target.value)}
                 >
-                  <option value="default">РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ</option>
-                  <option value="cheap">РЎРЅР°С‡Р°Р»Р° РґРµС€РµРІР»Рµ</option>
-                  <option value="expensive">РЎРЅР°С‡Р°Р»Р° РґРѕСЂРѕР¶Рµ</option>
+                  <option value="default">По умолчанию</option>
+                  <option value="cheap">Сначала дешевле</option>
+                  <option value="expensive">Сначала дороже</option>
                 </select>
               </div>
             </div>
@@ -325,13 +325,13 @@ return (
             {loading ? (
               <div className="catalog-empty">
                 <Search size={32} />
-                <h3>Р—Р°РіСЂСѓР¶Р°РµРј РѕР±СЉСЏРІР»РµРЅРёСЏ...</h3>
-                <p>РџРѕР»СѓС‡Р°РµРј РґР°РЅРЅС‹Рµ РёР· Р±Р°Р·С‹ HOMELY.</p>
+                <h3>Загружаем объявления...</h3>
+                <p>Получаем данные из базы HOMELY.</p>
               </div>
             ) : error ? (
               <div className="catalog-empty">
                 <Search size={32} />
-                <h3>РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РєР°С‚Р°Р»РѕРі</h3>
+                <h3>Не удалось загрузить каталог</h3>
                 <p>{error}</p>
               </div>
             ) : filteredProperties.length > 0 ? (
@@ -351,7 +351,7 @@ return (
                             : ""
                         }`}
                         onClick={() => toggleFavorite(property.id)}
-                        aria-label="Р”РѕР±Р°РІРёС‚СЊ РІ РёР·Р±СЂР°РЅРЅРѕРµ"
+                        aria-label="Добавить в избранное"
                       >
                         <Heart
                           size={20}
@@ -364,13 +364,13 @@ return (
                       </button>
 
                       <span className="catalog-property-label">
-                        {property.type === "rent" ? "РђСЂРµРЅРґР°" : "РџСЂРѕРґР°Р¶Р°"}
+                        {property.type === "rent" ? "Аренда" : "Продажа"}
                       </span>
                     </div>
 
                     <div className="catalog-card-info">
                       <div className="catalog-card-price">
-                        {property.price.toLocaleString("ru-RU")} в‚Ѕ
+                        {property.price.toLocaleString("ru-RU")} ₽
                         {property.period && (
                           <span> / {property.period}</span>
                         )}
@@ -386,15 +386,15 @@ return (
                       <div className="catalog-card-details">
                         <span>
                           <BedDouble size={16} />
-                          {property.rooms} РєРѕРјРЅ.
+                          {property.rooms} комн.
                         </span>
 
                         <span>
                           <Maximize2 size={15} />
-                          {property.area} РјВІ
+                          {property.area} м²
                         </span>
 
-                        <span>{property.floor} СЌС‚Р°Р¶</span>
+                        <span>{property.floor} этаж</span>
                       </div>
 
                       <div className="catalog-card-tags">
@@ -407,7 +407,7 @@ return (
                         to={`/property/${property.id}`}
                         className="catalog-details-link"
                       >
-                        РџРѕРґСЂРѕР±РЅРµРµ
+                        Подробнее
                         <ArrowUpRight size={17} />
                       </Link>
                     </div>
@@ -418,14 +418,14 @@ return (
               <div className="catalog-empty">
                 <Search size={32} />
 
-                <h3>РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</h3>
+                <h3>Ничего не найдено</h3>
 
                 <p>
-                  РџРѕРїСЂРѕР±СѓР№С‚Рµ РёР·РјРµРЅРёС‚СЊ РїР°СЂР°РјРµС‚СЂС‹ РїРѕРёСЃРєР° РёР»Рё СЃР±СЂРѕСЃРёС‚СЊ С„РёР»СЊС‚СЂС‹.
+                  Попробуйте изменить параметры поиска или сбросить фильтры.
                 </p>
 
                 <button onClick={resetFilters}>
-                  РЎР±СЂРѕСЃРёС‚СЊ С„РёР»СЊС‚СЂС‹
+                  Сбросить фильтры
                 </button>
               </div>
             )}
@@ -437,4 +437,3 @@ return (
 }
 
 export default Catalog;
-

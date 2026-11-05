@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import HomePage from "./pages/Home";
@@ -40,7 +40,7 @@ function ProtectedRoute({ children }) {
   }, []);
 
   if (authorized === null) {
-    return <div style={{ padding: 40, textAlign: "center" }}>Р—Р°РіСЂСѓР·РєР°...</div>;
+    return <div style={{ padding: 40, textAlign: "center" }}>Загрузка...</div>;
   }
 
   return authorized ? children : <Navigate to="/login" replace />;

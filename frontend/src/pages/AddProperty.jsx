@@ -1,4 +1,4 @@
-﻿
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -13,17 +13,17 @@ import Header from "../components/Header";
 import "./AddProperty.css";
 
 const availableAmenities = [
-  "Р‘Р°Р»РєРѕРЅ РёР»Рё Р»РѕРґР¶РёСЏ",
-  "РљРѕРЅРґРёС†РёРѕРЅРµСЂ",
-  "РњРµР±РµР»СЊ",
-  "РЎРѕРІСЂРµРјРµРЅРЅС‹Р№ СЂРµРјРѕРЅС‚",
-  "РџР°РЅРѕСЂР°РјРЅС‹Рµ РѕРєРЅР°",
-  "Р—Р°РєСЂС‹С‚С‹Р№ РґРІРѕСЂ",
-  "РџР°СЂРєРѕРІРєР°",
-  "Р›РёС„С‚",
-  "Р”РµС‚СЃРєР°СЏ РїР»РѕС‰Р°РґРєР°",
-  "Р СЏРґРѕРј РїР°СЂРє",
-  "Р СЏРґРѕРј РјРµС‚СЂРѕ",
+  "Балкон или лоджия",
+  "Кондиционер",
+  "Мебель",
+  "Современный ремонт",
+  "Панорамные окна",
+  "Закрытый двор",
+  "Парковка",
+  "Лифт",
+  "Детская площадка",
+  "Рядом парк",
+  "Рядом метро",
 ];
 
 function AddProperty() {
@@ -94,12 +94,12 @@ function AddProperty() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ");
+        throw new Error(data.error || "Не удалось создать объявление");
       }
 
       navigate("/profile");
     } catch (err) {
-      setError(err.message || "РћС€РёР±РєР° СЃРѕРµРґРёРЅРµРЅРёСЏ СЃ СЃРµСЂРІРµСЂРѕРј");
+      setError(err.message || "Ошибка соединения с сервером");
     } finally {
       setLoading(false);
     }
@@ -112,10 +112,10 @@ function AddProperty() {
         <main className="add-property-container">
           <div className="add-property-message">
             <Building2 size={35} />
-            <h1>Р Р°Р·РјРµС‰РµРЅРёРµ РЅРµРґРІРёР¶РёРјРѕСЃС‚Рё</h1>
-            <p>Р§С‚РѕР±С‹ СЂР°Р·РјРµСЃС‚РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ, РЅРµРѕР±С…РѕРґРёРјРѕ РІРѕР№С‚Рё РІ Р°РєРєР°СѓРЅС‚.</p>
+            <h1>Размещение недвижимости</h1>
+            <p>Чтобы разместить объявление, необходимо войти в аккаунт.</p>
             <Link to="/login" className="add-property-submit">
-              Р’РѕР№С‚Рё РІ Р°РєРєР°СѓРЅС‚
+              Войти в аккаунт
             </Link>
           </div>
         </main>
@@ -129,57 +129,57 @@ function AddProperty() {
 
       <main className="add-property-container">
         <Link to="/catalog" className="add-property-back">
-          <ArrowLeft size={18} /> Р’РµСЂРЅСѓС‚СЊСЃСЏ РІ РєР°С‚Р°Р»РѕРі
+          <ArrowLeft size={18} /> Вернуться в каталог
         </Link>
 
         <div className="add-property-heading">
           <span><Building2 size={25} /></span>
           <div>
-            <h1>Р Р°Р·РјРµСЃС‚РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ</h1>
-            <p>Р Р°СЃСЃРєР°Р¶РёС‚Рµ Рѕ РЅРµРґРІРёР¶РёРјРѕСЃС‚Рё, РєРѕС‚РѕСЂСѓСЋ С…РѕС‚РёС‚Рµ РїСЂРѕРґР°С‚СЊ РёР»Рё СЃРґР°С‚СЊ.</p>
+            <h1>Разместить объявление</h1>
+            <p>Расскажите о недвижимости, которую хотите продать или сдать.</p>
           </div>
         </div>
 
         <form className="add-property-form" onSubmit={handleSubmit}>
-          <h2>РћСЃРЅРѕРІРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</h2>
+          <h2>Основная информация</h2>
 
           <label>
-            РќР°Р·РІР°РЅРёРµ РѕР±СЉСЏРІР»РµРЅРёСЏ
+            Название объявления
             <input
               name="title"
               value={form.title}
               onChange={handleChange}
-              placeholder="РќР°РїСЂРёРјРµСЂ, РЎРІРµС‚Р»Р°СЏ РєРІР°СЂС‚РёСЂР° СЃ РІРёРґРѕРј РЅР° РїР°СЂРє"
+              placeholder="Например, Светлая квартира с видом на парк"
               required
             />
           </label>
 
           <label>
-            <span><MapPin size={16} /> РђРґСЂРµСЃ</span>
+            <span><MapPin size={16} /> Адрес</span>
             <input
               name="address"
               value={form.address}
               onChange={handleChange}
-              placeholder="Р“РѕСЂРѕРґ, СЂР°Р№РѕРЅ, СѓР»РёС†Р°"
+              placeholder="Город, район, улица"
               required
             />
           </label>
 
           <div className="add-property-grid">
             <label>
-              РўРёРї СЃРґРµР»РєРё
+              Тип сделки
               <select
                 name="deal_type"
                 value={form.deal_type}
                 onChange={handleChange}
               >
-                <option value="sale">РџСЂРѕРґР°Р¶Р°</option>
-                <option value="rent">РђСЂРµРЅРґР°</option>
+                <option value="sale">Продажа</option>
+                <option value="rent">Аренда</option>
               </select>
             </label>
 
             <label>
-              Р¦РµРЅР° (в‚Ѕ)
+              Цена (₽)
               <input
                 type="number"
                 name="price"
@@ -192,7 +192,7 @@ function AddProperty() {
             </label>
 
             <label>
-              РљРѕР»РёС‡РµСЃС‚РІРѕ РєРѕРјРЅР°С‚
+              Количество комнат
               <input
                 type="number"
                 name="rooms"
@@ -204,7 +204,7 @@ function AddProperty() {
             </label>
 
             <label>
-              РџР»РѕС‰Р°РґСЊ (РјВІ)
+              Площадь (м²)
               <input
                 type="number"
                 name="area"
@@ -218,7 +218,7 @@ function AddProperty() {
             </label>
 
             <label>
-              Р­С‚Р°Р¶
+              Этаж
               <input
                 type="number"
                 name="floor"
@@ -230,7 +230,7 @@ function AddProperty() {
             </label>
 
             <label>
-              Р’СЃРµРіРѕ СЌС‚Р°Р¶РµР№
+              Всего этажей
               <input
                 type="number"
                 name="total_floors"
@@ -242,10 +242,10 @@ function AddProperty() {
             </label>
           </div>
 
-          <h2>РЈРґРѕР±СЃС‚РІР° Рё РѕСЃРѕР±РµРЅРЅРѕСЃС‚Рё</h2>
+          <h2>Удобства и особенности</h2>
 
           <p className="add-property-amenities-description">
-            Р’С‹Р±РµСЂРёС‚Рµ РІСЃС‘, С‡С‚Рѕ РµСЃС‚СЊ РІ СЌС‚РѕР№ РЅРµРґРІРёР¶РёРјРѕСЃС‚Рё РёР»Рё СЂСЏРґРѕРј СЃ РЅРµР№.
+            Выберите всё, что есть в этой недвижимости или рядом с ней.
           </p>
 
           <div className="add-property-amenities">
@@ -269,13 +269,13 @@ function AddProperty() {
           </div>
 
           <p className="add-property-amenities-count">
-            Р’С‹Р±СЂР°РЅРѕ: {form.amenities.length}
+            Выбрано: {form.amenities.length}
           </p>
 
-          <h2>Р¤РѕС‚РѕРіСЂР°С„РёСЏ Рё РѕРїРёСЃР°РЅРёРµ</h2>
+          <h2>Фотография и описание</h2>
 
           <label>
-            <span><Image size={16} /> РЎСЃС‹Р»РєР° РЅР° С„РѕС‚РѕРіСЂР°С„РёСЋ</span>
+            <span><Image size={16} /> Ссылка на фотографию</span>
             <input
               type="url"
               name="image"
@@ -290,7 +290,7 @@ function AddProperty() {
             <div className="add-property-preview">
               <img
                 src={form.image}
-                alt="РџСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ РЅРµРґРІРёР¶РёРјРѕСЃС‚Рё"
+                alt="Предпросмотр недвижимости"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                 }}
@@ -299,12 +299,12 @@ function AddProperty() {
           )}
 
           <label>
-            РћРїРёСЃР°РЅРёРµ РЅРµРґРІРёР¶РёРјРѕСЃС‚Рё
+            Описание недвижимости
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="РћРїРёС€РёС‚Рµ РєРІР°СЂС‚РёСЂСѓ, РµС‘ РѕСЃРѕР±РµРЅРЅРѕСЃС‚Рё, РїСЂРµРёРјСѓС‰РµСЃС‚РІР° Рё РѕРєСЂСѓР¶РµРЅРёРµ..."
+              placeholder="Опишите квартиру, её особенности, преимущества и окружение..."
               rows="5"
               required
             />
@@ -318,11 +318,11 @@ function AddProperty() {
             disabled={loading}
           >
             <Send size={18} />
-            {loading ? "РџСѓР±Р»РёРєР°С†РёСЏ..." : "РћРїСѓР±Р»РёРєРѕРІР°С‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ"}
+            {loading ? "Публикация..." : "Опубликовать объявление"}
           </button>
 
           <p className="add-property-note">
-            РџРѕСЃР»Рµ РїСѓР±Р»РёРєР°С†РёРё РѕР±СЉСЏРІР»РµРЅРёРµ РїРѕСЏРІРёС‚СЃСЏ РІ РѕР±С‰РµРј РєР°С‚Р°Р»РѕРіРµ.
+            После публикации объявление появится в общем каталоге.
           </p>
         </form>
       </main>
@@ -331,4 +331,3 @@ function AddProperty() {
 }
 
 export default AddProperty;
-

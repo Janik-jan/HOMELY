@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -20,7 +20,7 @@ function Favorites() {
     const token = localStorage.getItem("authToken");
 
     if (!token) {
-      setError("Р’РѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚, С‡С‚РѕР±С‹ РїСЂРѕСЃРјР°С‚СЂРёРІР°С‚СЊ РёР·Р±СЂР°РЅРЅРѕРµ.");
+      setError("Войдите в аккаунт, чтобы просматривать избранное.");
       setLoading(false);
       return;
     }
@@ -38,13 +38,13 @@ function Favorites() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РёР·Р±СЂР°РЅРЅРѕРµ");
+        setError(data.error || "Не удалось загрузить избранное");
         return;
       }
 
       setProperties(data.properties || []);
     } catch (error) {
-      setError("РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРєР»СЋС‡РёС‚СЊСЃСЏ Рє HOMELY API.");
+      setError("Не удалось подключиться к HOMELY API.");
     } finally {
       setLoading(false);
     }
@@ -69,7 +69,7 @@ function Favorites() {
       );
 
       if (!response.ok) {
-        alert("РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РѕР±СЉСЏРІР»РµРЅРёРµ РёР· РёР·Р±СЂР°РЅРЅРѕРіРѕ");
+        alert("Не удалось удалить объявление из избранного");
         return;
       }
 
@@ -77,7 +77,7 @@ function Favorites() {
         current.filter((property) => property.id !== id)
       );
     } catch (error) {
-      alert("РћС€РёР±РєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє СЃРµСЂРІРµСЂСѓ");
+      alert("Ошибка подключения к серверу");
     }
   }
 
@@ -89,21 +89,21 @@ function Favorites() {
         <div className="favorites-intro">
           <div className="catalog-eyebrow">
             <span />
-            Р’РђРЁ HOMELY
+            ВАШ HOMELY
           </div>
 
-          <h1>РР·Р±СЂР°РЅРЅРѕРµ</h1>
+          <h1>Избранное</h1>
 
           <p>
-            Р—РґРµСЃСЊ СЃРѕР±СЂР°РЅС‹ РєРІР°СЂС‚РёСЂС‹, РєРѕС‚РѕСЂС‹Рµ РІС‹ СЃРѕС…СЂР°РЅРёР»Рё РґР»СЏ РґР°Р»СЊРЅРµР№С€РµРіРѕ
-            РїСЂРѕСЃРјРѕС‚СЂР°.
+            Здесь собраны квартиры, которые вы сохранили для дальнейшего
+            просмотра.
           </p>
         </div>
 
         {loading ? (
           <div className="catalog-empty">
             <Heart size={32} />
-            <h3>Р—Р°РіСЂСѓР¶Р°РµРј РёР·Р±СЂР°РЅРЅРѕРµ...</h3>
+            <h3>Загружаем избранное...</h3>
           </div>
         ) : error ? (
           <div className="catalog-empty">
@@ -111,28 +111,28 @@ function Favorites() {
             <h3>{error}</h3>
 
             <button onClick={() => navigate("/login")}>
-              Р’РѕР№С‚Рё РІ Р°РєРєР°СѓРЅС‚
+              Войти в аккаунт
             </button>
           </div>
         ) : properties.length === 0 ? (
           <div className="catalog-empty">
             <Heart size={32} />
-            <h3>РџРѕРєР° РЅРёС‡РµРіРѕ РЅРµС‚</h3>
+            <h3>Пока ничего нет</h3>
             <p>
-              Р”РѕР±Р°РІР»СЏР№С‚Рµ РїРѕРЅСЂР°РІРёРІС€РёРµСЃСЏ РєРІР°СЂС‚РёСЂС‹ РІ РёР·Р±СЂР°РЅРЅРѕРµ,
-              С‡С‚РѕР±С‹ РЅРµ РїРѕС‚РµСЂСЏС‚СЊ РёС….
+              Добавляйте понравившиеся квартиры в избранное,
+              чтобы не потерять их.
             </p>
 
             <Link to="/catalog" className="catalog-details-link">
-              РџРµСЂРµР№С‚Рё РІ РєР°С‚Р°Р»РѕРі
+              Перейти в каталог
               <ArrowUpRight size={17} />
             </Link>
           </div>
         ) : (
           <>
             <div className="favorites-heading">
-              <h2>РЎРѕС…СЂР°РЅС‘РЅРЅС‹Рµ РѕР±СЉСЏРІР»РµРЅРёСЏ</h2>
-              <span>РќР°Р№РґРµРЅРѕ: {properties.length}</span>
+              <h2>Сохранённые объявления</h2>
+              <span>Найдено: {properties.length}</span>
             </div>
 
             <div className="catalog-grid">
@@ -144,21 +144,21 @@ function Favorites() {
                     <button
                       className="catalog-favorite selected"
                       onClick={() => removeFavorite(property.id)}
-                      aria-label="РЈРґР°Р»РёС‚СЊ РёР· РёР·Р±СЂР°РЅРЅРѕРіРѕ"
+                      aria-label="Удалить из избранного"
                     >
                       <Heart size={20} fill="currentColor" />
                     </button>
 
                     <span className="catalog-property-label">
-                      {property.deal_type === "rent" ? "РђСЂРµРЅРґР°" : "РџСЂРѕРґР°Р¶Р°"}
+                      {property.deal_type === "rent" ? "Аренда" : "Продажа"}
                     </span>
                   </div>
 
                   <div className="catalog-card-info">
                     <div className="catalog-card-price">
-                      {property.price.toLocaleString("ru-RU")} в‚Ѕ
+                      {property.price.toLocaleString("ru-RU")} ₽
                       {property.deal_type === "rent" && (
-                        <span> / РјРµСЃ.</span>
+                        <span> / мес.</span>
                       )}
                     </div>
 
@@ -172,16 +172,16 @@ function Favorites() {
                     <div className="catalog-card-details">
                       <span>
                         <BedDouble size={16} />
-                        {property.rooms} РєРѕРјРЅ.
+                        {property.rooms} комн.
                       </span>
 
                       <span>
                         <Maximize2 size={15} />
-                        {property.area} РјВІ
+                        {property.area} м²
                       </span>
 
                       <span>
-                        {property.floor} РёР· {property.total_floors} СЌС‚Р°Р¶
+                        {property.floor} из {property.total_floors} этаж
                       </span>
                     </div>
 
@@ -189,7 +189,7 @@ function Favorites() {
                       to={`/property/${property.id}`}
                       className="catalog-details-link"
                     >
-                      РџРѕРґСЂРѕР±РЅРµРµ
+                      Подробнее
                       <ArrowUpRight size={17} />
                     </Link>
                   </div>
