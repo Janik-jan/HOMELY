@@ -1,0 +1,1694 @@
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"net"
+	"net/url"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/joho/godotenv"
+	"github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
+)
+
+type User struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type AuthRequest struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type Property struct {
+	ID          int      `json:"id"`
+	Title       string   `json:"title"`
+	Address     string   `json:"address"`
+	Price       int      `json:"price"`
+	DealType    string   `json:"deal_type"`
+	Rooms       int      `json:"rooms"`
+	Area        float64  `json:"area"`
+	Floor       int      `json:"floor"`
+	TotalFloors int      `json:"total_floors"`
+	Image       string   `json:"image"`
+	Description string   `json:"description"`
+	Amenities   []string `json:"amenities"`
+	UserID      *int     `json:"user_id,omitempty"`
+}
+
+type CreatePropertyRequest struct {
+	Title       string   `json:"title"`
+	Address     string   `json:"address"`
+	Price       int      `json:"price"`
+	DealType    string   `json:"deal_type"`
+	Rooms       int      `json:"rooms"`
+	Area        float64  `json:"area"`
+	Floor       int      `json:"floor"`
+	TotalFloors int      `json:"total_floors"`
+	Image       string   `json:"image"`
+	Description string   `json:"description"`
+	Amenities   []string `json:"amenities"`
+}
+
+type Claims struct {
+	UserID int `json:"user_id"`
+	jwt.RegisteredClaims
+}
+
+var db *sql.DB
+var jwtSecret []byte
+
+func main() {
+	_ = godotenv.Load()
+
+	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+	if len(jwtSecret) < 32 {
+		log.Fatal("JWT_SECRET должен содержать минимум 32 символа")
+	}
+
+	if err := connectDatabase(); err != nil {
+		log.Fatal("Ошибка подключения к базе данных: ", err)
+	}
+	defer db.Close()
+
+	if err := createTables(); err != nil {
+		log.Fatal("Ошибка создания таблиц: ", err)
+	}
+
+	r := gin.Default()
+	r.Use(corsMiddleware())
+
+	r.GET("/health", health)
+	r.GET("/api/health", health)
+
+	api := r.Group("/api")
+	{
+		api.POST("/register", register)
+		api.POST("/login", login)
+		api.GET("/me", authMiddleware(), getProfile)
+
+		api.GET("/properties", getProperties)
+		api.GET("/properties/:id", getPropertyByID)
+
+		// Работа с объявлениями пользователя
+		api.POST("/properties", authMiddleware(), createProperty)
+		api.GET("/my/properties", authMiddleware(), getMyProperties)
+		api.DELETE("/properties/:id", authMiddleware(), deleteProperty)
+		// Избранные объявления пользователя
+		api.GET("/favorites", authMiddleware(), getFavorites)
+		api.POST("/favorites/:id", authMiddleware(), addFavorite)
+		api.DELETE("/favorites/:id", authMiddleware(), removeFavorite)
+		// Отзывы об объявлениях
+		api.GET("/properties/:id/reviews", getReviews)
+		api.POST("/properties/:id/reviews", authMiddleware(), addReview)
+		api.DELETE("/reviews/:id", authMiddleware(), deleteReview)
+		// Заявки на просмотр недвижимости
+		api.POST("/properties/:id/appointments", authMiddleware(), createAppointment)
+		api.GET("/my/appointments", authMiddleware(), getMyAppointments)
+		api.GET("/my/received-appointments", authMiddleware(), getReceivedAppointments)
+		api.PATCH("/appointments/:id/status", authMiddleware(), updateAppointmentStatus)
+	}
+
+	log.Println("HOMELY API запущен на http://localhost:8080")
+
+	if err := r.Run(":8080"); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func health(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"status":  "ok",
+		"message": "HOMELY API работает!",
+	})
+}
+
+func connectDatabase() error {
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+
+	if host == "" {
+		host = "localhost"
+	}
+	if port == "" {
+		port = "5432"
+	}
+	if user == "" {
+		user = "postgres"
+	}
+	if dbName == "" {
+		dbName = "homely"
+	}
+
+	// Подключаемся к служебной базе PostgreSQL.
+	adminURL := buildDatabaseURL(host, port, user, password, "postgres")
+
+	adminDB, err := sql.Open("postgres", adminURL)
+	if err != nil {
+		return err
+	}
+	defer adminDB.Close()
+
+	if err := adminDB.Ping(); err != nil {
+		return fmt.Errorf("PostgreSQL недоступен: %w", err)
+	}
+
+	// Проверяем наличие нашей базы.
+	var exists bool
+
+	err = adminDB.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)",
+		dbName,
+	).Scan(&exists)
+
+	if err != nil {
+		return err
+	}
+
+	// Если базы нет, создаём её.
+	if !exists {
+		query := "CREATE DATABASE " + pq.QuoteIdentifier(dbName)
+
+		if _, err := adminDB.Exec(query); err != nil {
+			return fmt.Errorf("не удалось создать базу: %w", err)
+		}
+
+		log.Println("База данных", dbName, "создана")
+	}
+
+	// Подключаемся к базе HOMELY.
+	dbURL := buildDatabaseURL(host, port, user, password, dbName)
+
+	db, err = sql.Open("postgres", dbURL)
+	if err != nil {
+		return err
+	}
+
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
+
+	if err := db.Ping(); err != nil {
+		return err
+	}
+
+	log.Println("Подключение к PostgreSQL успешно")
+	return nil
+}
+
+func buildDatabaseURL(host, port, user, password, database string) string {
+	connection := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(user, password),
+		Host:   net.JoinHostPort(host, port),
+		Path:   "/" + database,
+	}
+
+	query := connection.Query()
+	query.Set("sslmode", "disable")
+	connection.RawQuery = query.Encode()
+
+	return connection.String()
+}
+
+func createTables() error {
+	usersQuery := `
+	CREATE TABLE IF NOT EXISTS users (
+		id SERIAL PRIMARY KEY,
+		name VARCHAR(100) NOT NULL,
+		email VARCHAR(255) UNIQUE NOT NULL,
+		password_hash TEXT NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	if _, err := db.Exec(usersQuery); err != nil {
+		return err
+	}
+
+	propertiesQuery := `
+	CREATE TABLE IF NOT EXISTS properties (
+		id SERIAL PRIMARY KEY,
+		title VARCHAR(255) NOT NULL,
+		address VARCHAR(500) NOT NULL,
+		price INTEGER NOT NULL,
+		deal_type VARCHAR(20) NOT NULL,
+		rooms INTEGER NOT NULL,
+		area NUMERIC(10, 2) NOT NULL,
+		floor INTEGER NOT NULL,
+		total_floors INTEGER NOT NULL,
+		image TEXT NOT NULL,
+		description TEXT NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	if _, err := db.Exec(propertiesQuery); err != nil {
+		return err
+	}
+	// Добавляем связь объявления с его владельцем.
+	_, err := db.Exec(`
+		ALTER TABLE properties
+		ADD COLUMN IF NOT EXISTS user_id INTEGER
+		REFERENCES users(id) ON DELETE SET NULL
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`
+	    ALTER TABLE properties
+	    ADD COLUMN IF NOT EXISTS amenities TEXT[] NOT NULL DEFAULT '{}'
+	`)
+	if err != nil {
+		return err
+	}
+	favoritesQuery := `
+CREATE TABLE IF NOT EXISTS favorites (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, property_id)
+);`
+
+	if _, err := db.Exec(favoritesQuery); err != nil {
+		return err
+	}
+	reviewsQuery := `
+CREATE TABLE IF NOT EXISTS reviews (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, property_id)
+);`
+
+	if _, err := db.Exec(reviewsQuery); err != nil {
+		return err
+	}
+	appointmentsQuery := `
+CREATE TABLE IF NOT EXISTS appointments (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+    requester_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    appointment_at TIMESTAMP NOT NULL,
+    message TEXT DEFAULT '',
+    status VARCHAR(20) NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);`
+
+	if _, err := db.Exec(appointmentsQuery); err != nil {
+		return err
+	}
+	log.Println("Таблицы users и properties готовы")
+
+	return seedProperties()
+}
+
+func register(c *gin.Context) {
+	var request AuthRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": "Некорректные данные"})
+		return
+	}
+
+	request.Name = strings.TrimSpace(request.Name)
+	request.Email = strings.ToLower(strings.TrimSpace(request.Email))
+
+	if request.Name == "" || request.Email == "" || request.Password == "" {
+		c.JSON(400, gin.H{"error": "Заполните все поля"})
+		return
+	}
+
+	if len(request.Password) < 6 {
+		c.JSON(400, gin.H{"error": "Пароль должен содержать минимум 6 символов"})
+		return
+	}
+
+	if len(request.Password) > 72 {
+		c.JSON(400, gin.H{"error": "Пароль слишком длинный"})
+		return
+	}
+
+	passwordHash, err := bcrypt.GenerateFromPassword(
+		[]byte(request.Password),
+		bcrypt.DefaultCost,
+	)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка обработки пароля"})
+		return
+	}
+
+	var user User
+
+	err = db.QueryRow(`
+		INSERT INTO users (name, email, password_hash)
+		VALUES ($1, $2, $3)
+		RETURNING id, name, email
+	`, request.Name, request.Email, string(passwordHash)).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+	)
+
+	if err != nil {
+		if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == "23505" {
+			c.JSON(409, gin.H{
+				"error": "Пользователь с такой почтой уже зарегистрирован",
+			})
+			return
+		}
+
+		log.Println("Ошибка регистрации:", err)
+		c.JSON(500, gin.H{"error": "Не удалось создать аккаунт"})
+		return
+	}
+
+	c.JSON(201, gin.H{
+		"message": "Аккаунт успешно создан",
+		"user":    user,
+	})
+}
+
+func login(c *gin.Context) {
+	var request AuthRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": "Некорректные данные"})
+		return
+	}
+
+	email := strings.ToLower(strings.TrimSpace(request.Email))
+
+	var user User
+	var passwordHash string
+
+	err := db.QueryRow(`
+		SELECT id, name, email, password_hash
+		FROM users
+		WHERE email = $1
+	`, email).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&passwordHash,
+	)
+
+	if err != nil || bcrypt.CompareHashAndPassword(
+		[]byte(passwordHash),
+		[]byte(request.Password),
+	) != nil {
+		c.JSON(401, gin.H{"error": "Неверная почта или пароль"})
+		return
+	}
+
+	token, err := createToken(user.ID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось создать токен"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Вход выполнен успешно",
+		"token":   token,
+		"user":    user,
+	})
+}
+
+func createToken(userID int) (string, error) {
+	claims := Claims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString(jwtSecret)
+}
+
+func authMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		header := c.GetHeader("Authorization")
+
+		if !strings.HasPrefix(header, "Bearer ") {
+			c.AbortWithStatusJSON(401, gin.H{
+				"error": "Требуется авторизация",
+			})
+			return
+		}
+
+		tokenString := strings.TrimPrefix(header, "Bearer ")
+		claims := &Claims{}
+
+		token, err := jwt.ParseWithClaims(
+			tokenString,
+			claims,
+			func(token *jwt.Token) (interface{}, error) {
+				if token.Method != jwt.SigningMethodHS256 {
+					return nil, fmt.Errorf("неверный алгоритм токена")
+				}
+				return jwtSecret, nil
+			},
+		)
+
+		if err != nil || !token.Valid {
+			c.AbortWithStatusJSON(401, gin.H{
+				"error": "Недействительный или просроченный токен",
+			})
+			return
+		}
+
+		c.Set("userID", claims.UserID)
+		c.Next()
+	}
+}
+
+func getProfile(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(401, gin.H{"error": "Нет авторизации"})
+		return
+	}
+
+	var user User
+
+	err := db.QueryRow(`
+		SELECT id, name, email
+		FROM users
+		WHERE id = $1
+	`, userID).Scan(&user.ID, &user.Name, &user.Email)
+
+	if err != nil {
+		c.JSON(404, gin.H{"error": "Пользователь не найден"})
+		return
+	}
+
+	c.JSON(200, gin.H{"user": user})
+}
+
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set(
+			"Access-Control-Allow-Origin",
+			"http://localhost:5173",
+		)
+		c.Writer.Header().Set(
+			"Access-Control-Allow-Headers",
+			"Origin, Content-Type, Authorization",
+		)
+		c.Writer.Header().Set(
+			"Access-Control-Allow-Methods",
+			"GET, POST, PUT, PATCH, DELETE, OPTIONS",
+		)
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+
+}
+
+func seedProperties() error {
+	var count int
+
+	err := db.QueryRow("SELECT COUNT(*) FROM properties").Scan(&count)
+	if err != nil {
+		return err
+	}
+
+	if count > 0 {
+		log.Println("Объявления уже существуют, пропускаем добавление")
+		return nil
+	}
+
+	properties := []Property{
+		{
+			Title:       "Светлая квартира с панорамными окнами",
+			Address:     "Москва, Пресненский район",
+			Price:       18500000,
+			DealType:    "sale",
+			Rooms:       2,
+			Area:        64.5,
+			Floor:       12,
+			TotalFloors: 24,
+			Image:       "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0",
+			Description: "Просторная квартира с панорамными окнами, современной кухней и прекрасным видом на город.",
+		},
+		{
+			Title:       "Уютная квартира рядом с парком",
+			Address:     "Москва, район Хамовники",
+			Price:       95000,
+			DealType:    "rent",
+			Rooms:       2,
+			Area:        52.0,
+			Floor:       4,
+			TotalFloors: 9,
+			Image:       "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c",
+			Description: "Уютное жильё в тихом районе рядом с парком, магазинами и метро.",
+		},
+		{
+			Title:       "Современная квартира в новом доме",
+			Address:     "Москва, ЖК Сити",
+			Price:       24300000,
+			DealType:    "sale",
+			Rooms:       3,
+			Area:        87.2,
+			Floor:       18,
+			TotalFloors: 30,
+			Image:       "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea",
+			Description: "Современный интерьер, просторная гостиная и развитая инфраструктура.",
+		},
+		{
+			Title:       "Минималистичная студия",
+			Address:     "Москва, район Хорошёво",
+			Price:       65000,
+			DealType:    "rent",
+			Rooms:       1,
+			Area:        31.4,
+			Floor:       7,
+			TotalFloors: 17,
+			Image:       "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d",
+			Description: "Компактная студия с удобной планировкой и хорошим естественным освещением.",
+		},
+		{
+			Title:       "Семейная квартира с просторной кухней",
+			Address:     "Москва, район Раменки",
+			Price:       16800000,
+			DealType:    "sale",
+			Rooms:       3,
+			Area:        78.6,
+			Floor:       6,
+			TotalFloors: 16,
+			Image:       "https://images.unsplash.com/photo-1600607687644-c7171b42498f",
+			Description: "Отличный вариант для семьи: просторная кухня, удобные комнаты и зелёный двор.",
+		},
+		{
+			Title:       "Квартира с видом на город",
+			Address:     "Москва, район Дорогомилово",
+			Price:       120000,
+			DealType:    "rent",
+			Rooms:       2,
+			Area:        59.8,
+			Floor:       15,
+			TotalFloors: 22,
+			Image:       "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d",
+			Description: "Светлая квартира с красивым видом, мебелью и удобным расположением.",
+		},
+	}
+
+	for _, property := range properties {
+		_, err := db.Exec(`
+			INSERT INTO properties (
+				title, address, price, deal_type, rooms,
+				area, floor, total_floors, image, description
+			)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		`,
+			property.Title,
+			property.Address,
+			property.Price,
+			property.DealType,
+			property.Rooms,
+			property.Area,
+			property.Floor,
+			property.TotalFloors,
+			property.Image,
+			property.Description,
+		)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Println("Добавлено 6 демонстрационных объявлений")
+
+	return nil
+}
+
+func getProperties(c *gin.Context) {
+	rows, err := db.Query(`
+		SELECT id, title, address, price, deal_type,
+		       rooms, area, floor, total_floors, image, description
+		FROM properties
+		ORDER BY created_at DESC
+	`)
+
+	if err != nil {
+		log.Println("Ошибка получения объявлений:", err)
+		c.JSON(500, gin.H{"error": "Не удалось получить объявления"})
+		return
+	}
+	defer rows.Close()
+
+	properties := []Property{}
+
+	for rows.Next() {
+		var property Property
+
+		err := rows.Scan(
+			&property.ID,
+			&property.Title,
+			&property.Address,
+			&property.Price,
+			&property.DealType,
+			&property.Rooms,
+			&property.Area,
+			&property.Floor,
+			&property.TotalFloors,
+			&property.Image,
+			&property.Description,
+		)
+
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Ошибка чтения объявления"})
+			return
+		}
+
+		properties = append(properties, property)
+	}
+
+	if err := rows.Err(); err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка обработки объявлений"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"properties": properties,
+		"count":      len(properties),
+	})
+}
+
+func getPropertyByID(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+
+	if err != nil || id <= 0 {
+		c.JSON(400, gin.H{"error": "Некорректный ID объявления"})
+		return
+	}
+
+	var property Property
+
+	err = db.QueryRow(`
+    SELECT id, title, address, price, deal_type,
+           rooms, area, floor, total_floors, image, description, amenities
+    FROM properties
+    WHERE id = $1
+`, id).Scan(
+		&property.ID,
+		&property.Title,
+		&property.Address,
+		&property.Price,
+		&property.DealType,
+		&property.Rooms,
+		&property.Area,
+		&property.Floor,
+		&property.TotalFloors,
+		&property.Image,
+		&property.Description,
+		pq.Array(&property.Amenities),
+	)
+
+	if err == sql.ErrNoRows {
+		c.JSON(404, gin.H{"error": "Объявление не найдено"})
+		return
+	}
+
+	if err != nil {
+		log.Println("Ошибка получения объявления:", err)
+		c.JSON(500, gin.H{"error": "Не удалось получить объявление"})
+		return
+	}
+
+	c.JSON(200, gin.H{"property": property})
+}
+
+// Получение ID авторизованного пользователя.
+func getAuthenticatedUserID(c *gin.Context) (int, bool) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		return 0, false
+	}
+
+	id, ok := userID.(int)
+	return id, ok
+}
+
+// Создание нового объявления.
+func createProperty(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	var request CreatePropertyRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": "Некорректные данные"})
+		return
+	}
+
+	request.Title = strings.TrimSpace(request.Title)
+	request.Address = strings.TrimSpace(request.Address)
+	request.Image = strings.TrimSpace(request.Image)
+	request.Description = strings.TrimSpace(request.Description)
+
+	if request.Title == "" || request.Address == "" ||
+		request.Image == "" || request.Description == "" {
+		c.JSON(400, gin.H{"error": "Заполните все поля"})
+		return
+	}
+
+	if request.DealType != "rent" && request.DealType != "sale" {
+		c.JSON(400, gin.H{"error": "Тип сделки должен быть rent или sale"})
+		return
+	}
+
+	if request.Price <= 0 || request.Rooms <= 0 ||
+		request.Area <= 0 || request.Floor <= 0 ||
+		request.TotalFloors <= 0 || request.Floor > request.TotalFloors {
+		c.JSON(400, gin.H{"error": "Проверьте цену, площадь, комнаты и этаж"})
+		return
+	}
+
+	var property Property
+
+	err := db.QueryRow(`
+    INSERT INTO properties (
+        title, address, price, deal_type, rooms,
+        area, floor, total_floors, image, description, user_id, amenities
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    RETURNING id, title, address, price, deal_type,
+        rooms, area, floor, total_floors, image, description, amenities
+`,
+		request.Title,
+		request.Address,
+		request.Price,
+		request.DealType,
+		request.Rooms,
+		request.Area,
+		request.Floor,
+		request.TotalFloors,
+		request.Image,
+		request.Description,
+		userID,
+		pq.Array(request.Amenities),
+	).Scan(
+		&property.ID,
+		&property.Title,
+		&property.Address,
+		&property.Price,
+		&property.DealType,
+		&property.Rooms,
+		&property.Area,
+		&property.Floor,
+		&property.TotalFloors,
+		&property.Image,
+		&property.Description,
+		pq.Array(&property.Amenities),
+	)
+
+	if err != nil {
+		log.Println("Ошибка создания объявления:", err)
+		c.JSON(500, gin.H{"error": "Не удалось создать объявление"})
+		return
+	}
+
+	property.UserID = &userID
+
+	c.JSON(201, gin.H{
+		"message":  "Объявление успешно создано",
+		"property": property,
+	})
+}
+
+// Получение объявлений текущего пользователя.
+func getMyProperties(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	rows, err := db.Query(`
+		SELECT id, title, address, price, deal_type,
+			rooms, area, floor, total_floors, image, description
+		FROM properties
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`, userID)
+
+	if err != nil {
+		log.Println("Ошибка получения объявлений пользователя:", err)
+		c.JSON(500, gin.H{"error": "Не удалось получить объявления"})
+		return
+	}
+	defer rows.Close()
+
+	properties := []Property{}
+
+	for rows.Next() {
+		var property Property
+
+		err := rows.Scan(
+			&property.ID,
+			&property.Title,
+			&property.Address,
+			&property.Price,
+			&property.DealType,
+			&property.Rooms,
+			&property.Area,
+			&property.Floor,
+			&property.TotalFloors,
+			&property.Image,
+			&property.Description,
+		)
+
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Ошибка чтения объявления"})
+			return
+		}
+
+		property.UserID = &userID
+		properties = append(properties, property)
+	}
+
+	if err := rows.Err(); err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка обработки объявлений"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"properties": properties,
+		"count":      len(properties),
+	})
+}
+
+// Удаление объявления только его владельцем.
+func deleteProperty(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		c.JSON(400, gin.H{"error": "Некорректный ID объявления"})
+		return
+	}
+
+	result, err := db.Exec(`
+		DELETE FROM properties
+		WHERE id = $1 AND user_id = $2
+	`, id, userID)
+
+	if err != nil {
+		log.Println("Ошибка удаления объявления:", err)
+		c.JSON(500, gin.H{"error": "Не удалось удалить объявление"})
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось проверить удаление"})
+		return
+	}
+
+	if rowsAffected == 0 {
+		c.JSON(404, gin.H{
+			"error": "Объявление не найдено или у вас нет прав на его удаление",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Объявление успешно удалено",
+	})
+}
+
+// Получение избранных объявлений пользователя.
+func getFavorites(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	rows, err := db.Query(`
+        SELECT p.id, p.title, p.address, p.price, p.deal_type,
+               p.rooms, p.area, p.floor, p.total_floors,
+               p.image, p.description
+        FROM favorites f
+        JOIN properties p ON p.id = f.property_id
+        WHERE f.user_id = $1
+        ORDER BY f.created_at DESC
+    `, userID)
+
+	if err != nil {
+		log.Println("Ошибка получения избранного:", err)
+		c.JSON(500, gin.H{"error": "Не удалось получить избранное"})
+		return
+	}
+	defer rows.Close()
+
+	properties := []Property{}
+
+	for rows.Next() {
+		var property Property
+
+		err := rows.Scan(
+			&property.ID,
+			&property.Title,
+			&property.Address,
+			&property.Price,
+			&property.DealType,
+			&property.Rooms,
+			&property.Area,
+			&property.Floor,
+			&property.TotalFloors,
+			&property.Image,
+			&property.Description,
+		)
+
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Ошибка чтения избранного"})
+			return
+		}
+
+		properties = append(properties, property)
+	}
+
+	if err := rows.Err(); err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка обработки избранного"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"properties": properties,
+		"count":      len(properties),
+	})
+}
+
+// Добавление объявления в избранное.
+func addFavorite(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	propertyID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || propertyID <= 0 {
+		c.JSON(400, gin.H{"error": "Некорректный ID объявления"})
+		return
+	}
+
+	result, err := db.Exec(`
+        INSERT INTO favorites (user_id, property_id)
+        SELECT $1, id
+        FROM properties
+        WHERE id = $2
+        ON CONFLICT (user_id, property_id) DO NOTHING
+    `, userID, propertyID)
+
+	if err != nil {
+		log.Println("Ошибка добавления в избранное:", err)
+		c.JSON(500, gin.H{"error": "Не удалось добавить объявление"})
+		return
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось проверить результат"})
+		return
+	}
+
+	if affected == 0 {
+		var exists bool
+		err := db.QueryRow(
+			"SELECT EXISTS(SELECT 1 FROM properties WHERE id = $1)",
+			propertyID,
+		).Scan(&exists)
+
+		if err != nil || !exists {
+			c.JSON(404, gin.H{"error": "Объявление не найдено"})
+			return
+		}
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Объявление добавлено в избранное",
+	})
+}
+
+// Удаление объявления из избранного.
+func removeFavorite(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	propertyID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || propertyID <= 0 {
+		c.JSON(400, gin.H{"error": "Некорректный ID объявления"})
+		return
+	}
+
+	_, err = db.Exec(`
+        DELETE FROM favorites
+        WHERE user_id = $1 AND property_id = $2
+    `, userID, propertyID)
+
+	if err != nil {
+		log.Println("Ошибка удаления из избранного:", err)
+		c.JSON(500, gin.H{"error": "Не удалось удалить из избранного"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Объявление удалено из избранного",
+	})
+}
+
+// Данные нового отзыва.
+type CreateReviewRequest struct {
+	Rating  int    `json:"rating"`
+	Comment string `json:"comment"`
+}
+
+// Отзыв.
+type Review struct {
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	UserName  string    `json:"user_name"`
+	Rating    int       `json:"rating"`
+	Comment   string    `json:"comment"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// Получение отзывов и статистики по объявлению.
+func getReviews(c *gin.Context) {
+	propertyID, err := strconv.Atoi(c.Param("id"))
+
+	if err != nil || propertyID <= 0 {
+		c.JSON(400, gin.H{"error": "Некорректный ID объявления"})
+		return
+	}
+
+	var exists bool
+
+	err = db.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM properties WHERE id = $1)",
+		propertyID,
+	).Scan(&exists)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка проверки объявления"})
+		return
+	}
+
+	if !exists {
+		c.JSON(404, gin.H{"error": "Объявление не найдено"})
+		return
+	}
+
+	// Получаем среднюю оценку и количество отзывов.
+	var averageRating float64
+	var reviewCount int
+
+	err = db.QueryRow(`
+        SELECT
+            COALESCE(AVG(rating), 0),
+            COUNT(*)
+        FROM reviews
+        WHERE property_id = $1
+    `, propertyID).Scan(&averageRating, &reviewCount)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось получить рейтинг"})
+		return
+	}
+
+	// Считаем количество оценок каждой звёздности.
+	distribution := map[int]int{
+		1: 0,
+		2: 0,
+		3: 0,
+		4: 0,
+		5: 0,
+	}
+
+	rows, err := db.Query(`
+        SELECT rating, COUNT(*)
+        FROM reviews
+        WHERE property_id = $1
+        GROUP BY rating
+    `, propertyID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось получить распределение оценок"})
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var rating int
+		var count int
+
+		if err := rows.Scan(&rating, &count); err != nil {
+			c.JSON(500, gin.H{"error": "Ошибка чтения оценок"})
+			return
+		}
+
+		distribution[rating] = count
+	}
+
+	if err := rows.Err(); err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка обработки оценок"})
+		return
+	}
+
+	// Получаем сами отзывы.
+	reviewRows, err := db.Query(`
+        SELECT
+            r.id,
+            r.user_id,
+            u.name,
+            r.rating,
+            r.comment,
+            r.created_at
+        FROM reviews r
+        JOIN users u ON u.id = r.user_id
+        WHERE r.property_id = $1
+        ORDER BY r.created_at DESC
+    `, propertyID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось получить отзывы"})
+		return
+	}
+	defer reviewRows.Close()
+
+	reviews := []Review{}
+
+	for reviewRows.Next() {
+		var review Review
+
+		err := reviewRows.Scan(
+			&review.ID,
+			&review.UserID,
+			&review.UserName,
+			&review.Rating,
+			&review.Comment,
+			&review.CreatedAt,
+		)
+
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Ошибка чтения отзыва"})
+			return
+		}
+
+		reviews = append(reviews, review)
+	}
+
+	if err := reviewRows.Err(); err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка обработки отзывов"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"average_rating": averageRating,
+		"review_count":   reviewCount,
+		"distribution":   distribution,
+		"reviews":        reviews,
+	})
+}
+
+// Добавление отзыва.
+func addReview(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	propertyID, err := strconv.Atoi(c.Param("id"))
+
+	if err != nil || propertyID <= 0 {
+		c.JSON(400, gin.H{"error": "Некорректный ID объявления"})
+		return
+	}
+
+	var request CreateReviewRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": "Некорректные данные"})
+		return
+	}
+
+	request.Comment = strings.TrimSpace(request.Comment)
+
+	if request.Rating < 1 || request.Rating > 5 {
+		c.JSON(400, gin.H{"error": "Оценка должна быть от 1 до 5 звёзд"})
+		return
+	}
+
+	if request.Comment == "" {
+		c.JSON(400, gin.H{"error": "Напишите комментарий"})
+		return
+	}
+
+	if len(request.Comment) > 2000 {
+		c.JSON(400, gin.H{"error": "Комментарий не должен превышать 2000 символов"})
+		return
+	}
+
+	var review Review
+
+	err = db.QueryRow(`
+        INSERT INTO reviews (user_id, property_id, rating, comment)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, user_id, rating, comment, created_at
+    `,
+		userID,
+		propertyID,
+		request.Rating,
+		request.Comment,
+	).Scan(
+		&review.ID,
+		&review.UserID,
+		&review.Rating,
+		&review.Comment,
+		&review.CreatedAt,
+	)
+
+	if err != nil {
+		if pgErr, ok := err.(*pq.Error); ok {
+			if pgErr.Code == "23505" {
+				c.JSON(409, gin.H{
+					"error": "Вы уже оставили отзыв об этой квартире",
+				})
+				return
+			}
+
+			if pgErr.Code == "23503" {
+				c.JSON(404, gin.H{"error": "Объявление не найдено"})
+				return
+			}
+		}
+
+		log.Println("Ошибка добавления отзыва:", err)
+		c.JSON(500, gin.H{"error": "Не удалось добавить отзыв"})
+		return
+	}
+
+	err = db.QueryRow(
+		"SELECT name FROM users WHERE id = $1",
+		userID,
+	).Scan(&review.UserName)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Отзыв добавлен, но не удалось получить имя автора"})
+		return
+	}
+
+	c.JSON(201, gin.H{
+		"message": "Отзыв успешно добавлен",
+		"review":  review,
+	})
+}
+
+// Удаление собственного отзыва.
+func deleteReview(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	reviewID, err := strconv.Atoi(c.Param("id"))
+
+	if err != nil || reviewID <= 0 {
+		c.JSON(400, gin.H{"error": "Некорректный ID отзыва"})
+		return
+	}
+
+	result, err := db.Exec(`
+        DELETE FROM reviews
+        WHERE id = $1 AND user_id = $2
+    `, reviewID, userID)
+
+	if err != nil {
+		log.Println("Ошибка удаления отзыва:", err)
+		c.JSON(500, gin.H{"error": "Не удалось удалить отзыв"})
+		return
+	}
+
+	affected, err := result.RowsAffected()
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось проверить удаление"})
+		return
+	}
+
+	if affected == 0 {
+		c.JSON(404, gin.H{
+			"error": "Отзыв не найден или у вас нет прав на его удаление",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Отзыв успешно удалён",
+	})
+}
+
+// Данные для создания заявки.
+type CreateAppointmentRequest struct {
+	AppointmentAt string `json:"appointment_at"`
+	Message       string `json:"message"`
+}
+
+// Заявка на просмотр.
+type Appointment struct {
+	ID              int       `json:"id"`
+	PropertyID      int       `json:"property_id"`
+	PropertyTitle   string    `json:"property_title"`
+	PropertyAddress string    `json:"property_address"`
+	RequesterID     int       `json:"requester_id"`
+	RequesterName   string    `json:"requester_name"`
+	RequesterEmail  string    `json:"requester_email"`
+	OwnerName       string    `json:"owner_name,omitempty"`
+	OwnerEmail      string    `json:"owner_email,omitempty"`
+	AppointmentAt   time.Time `json:"appointment_at"`
+	Message         string    `json:"message"`
+	Status          string    `json:"status"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+// Создание заявки на просмотр.
+func createAppointment(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	propertyID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || propertyID <= 0 {
+		c.JSON(400, gin.H{"error": "Некорректный ID объявления"})
+		return
+	}
+
+	var request CreateAppointmentRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": "Некорректные данные"})
+		return
+	}
+
+	appointmentAt, err := time.ParseInLocation(
+		"2006-01-02T15:04",
+		request.AppointmentAt,
+		time.Local,
+	)
+
+	if err != nil || !appointmentAt.After(time.Now()) {
+		c.JSON(400, gin.H{
+			"error": "Выберите корректные дату и время в будущем",
+		})
+		return
+	}
+
+	request.Message = strings.TrimSpace(request.Message)
+
+	if len(request.Message) > 1000 {
+		c.JSON(400, gin.H{"error": "Сообщение слишком длинное"})
+		return
+	}
+
+	var ownerID sql.NullInt64
+
+	err = db.QueryRow(`
+        SELECT user_id
+        FROM properties
+        WHERE id = $1
+    `, propertyID).Scan(&ownerID)
+
+	if err == sql.ErrNoRows {
+		c.JSON(404, gin.H{"error": "Объявление не найдено"})
+		return
+	}
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось проверить объявление"})
+		return
+	}
+
+	if !ownerID.Valid {
+		c.JSON(400, gin.H{
+			"error": "У этого демонстрационного объявления пока нет владельца",
+		})
+		return
+	}
+
+	if int(ownerID.Int64) == userID {
+		c.JSON(400, gin.H{
+			"error": "Нельзя отправить заявку на собственное объявление",
+		})
+		return
+	}
+
+	var appointment Appointment
+
+	err = db.QueryRow(`
+        INSERT INTO appointments (
+            property_id, requester_id, appointment_at, message
+        )
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, property_id, requester_id,
+                  appointment_at, message, status, created_at
+    `,
+		propertyID,
+		userID,
+		appointmentAt,
+		request.Message,
+	).Scan(
+		&appointment.ID,
+		&appointment.PropertyID,
+		&appointment.RequesterID,
+		&appointment.AppointmentAt,
+		&appointment.Message,
+		&appointment.Status,
+		&appointment.CreatedAt,
+	)
+
+	if err != nil {
+		log.Println("Ошибка создания заявки:", err)
+		c.JSON(500, gin.H{"error": "Не удалось отправить заявку"})
+		return
+	}
+
+	c.JSON(201, gin.H{
+		"message":     "Заявка на просмотр отправлена",
+		"appointment": appointment,
+	})
+}
+
+func getMyAppointments(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	rows, err := db.Query(`
+		SELECT a.id, a.property_id, p.title, p.address,
+		       a.requester_id, u.name, u.email,
+		       CASE WHEN a.status = 'approved' THEN COALESCE(owner.name, '') ELSE '' END,
+		       CASE WHEN a.status = 'approved' THEN COALESCE(owner.email, '') ELSE '' END,
+		       a.appointment_at, a.message, a.status, a.created_at
+		FROM appointments a
+		JOIN properties p ON p.id = a.property_id
+		JOIN users u ON u.id = a.requester_id
+		LEFT JOIN users owner ON owner.id = p.user_id
+		WHERE a.requester_id = $1
+		ORDER BY a.created_at DESC
+	`, userID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось получить заявки"})
+		return
+	}
+	defer rows.Close()
+
+	appointments := []Appointment{}
+
+	for rows.Next() {
+		var a Appointment
+
+		if err := rows.Scan(
+			&a.ID, &a.PropertyID, &a.PropertyTitle, &a.PropertyAddress,
+			&a.RequesterID, &a.RequesterName, &a.RequesterEmail,
+			&a.OwnerName, &a.OwnerEmail,
+			&a.AppointmentAt, &a.Message, &a.Status, &a.CreatedAt,
+		); err != nil {
+			c.JSON(500, gin.H{"error": "Ошибка чтения заявок"})
+			return
+		}
+
+		appointments = append(appointments, a)
+	}
+
+	if err := rows.Err(); err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка обработки заявок"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"appointments": appointments,
+		"count":        len(appointments),
+	})
+}
+
+// Получение заявок на объявления текущего владельца.
+func getReceivedAppointments(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	rows, err := db.Query(`
+        SELECT a.id, a.property_id, p.title, p.address,
+               a.requester_id, u.name, u.email,
+               a.appointment_at, a.message, a.status, a.created_at
+        FROM appointments a
+        JOIN properties p ON p.id = a.property_id
+        JOIN users u ON u.id = a.requester_id
+        WHERE p.user_id = $1
+        ORDER BY a.created_at DESC
+    `, userID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось получить входящие заявки"})
+		return
+	}
+	defer rows.Close()
+
+	appointments := []Appointment{}
+
+	for rows.Next() {
+		var a Appointment
+
+		if err := rows.Scan(
+			&a.ID, &a.PropertyID, &a.PropertyTitle, &a.PropertyAddress,
+			&a.RequesterID, &a.RequesterName, &a.RequesterEmail,
+			&a.AppointmentAt, &a.Message, &a.Status, &a.CreatedAt,
+		); err != nil {
+			c.JSON(500, gin.H{"error": "Ошибка чтения заявок"})
+			return
+		}
+
+		appointments = append(appointments, a)
+	}
+
+	if err := rows.Err(); err != nil {
+		c.JSON(500, gin.H{"error": "Ошибка обработки заявок"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"appointments": appointments,
+		"count":        len(appointments),
+	})
+}
+
+// Подтверждение или отклонение заявки владельцем.
+func updateAppointmentStatus(c *gin.Context) {
+	userID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(401, gin.H{"error": "Необходима авторизация"})
+		return
+	}
+
+	appointmentID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || appointmentID <= 0 {
+		c.JSON(400, gin.H{"error": "Некорректный ID заявки"})
+		return
+	}
+
+	var request struct {
+		Status string `json:"status"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": "Некорректные данные"})
+		return
+	}
+
+	if request.Status != "approved" && request.Status != "rejected" {
+		c.JSON(400, gin.H{"error": "Недопустимый статус заявки"})
+		return
+	}
+
+	result, err := db.Exec(`
+        UPDATE appointments
+        SET status = $1
+        WHERE id = $2
+          AND property_id IN (
+              SELECT id FROM properties WHERE user_id = $3
+          )
+    `, request.Status, appointmentID, userID)
+
+	if err != nil {
+		log.Println("Ошибка изменения статуса заявки:", err)
+		c.JSON(500, gin.H{"error": "Не удалось изменить статус"})
+		return
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Не удалось проверить результат"})
+		return
+	}
+
+	if affected == 0 {
+		c.JSON(404, gin.H{
+			"error": "Заявка не найдена или вы не являетесь владельцем объявления",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Статус заявки изменён",
+		"status":  request.Status,
+	})
+}

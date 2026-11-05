@@ -1,0 +1,27 @@
+.catalog-details-link {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 16px;
+  background: #a96b25 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+  border: none !important;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.catalog-details-link:hover {
+  background: #c0833c !important;
+}
+
+.catalog-details-link svg {
+  flex-shrink: 0;
+  color: #ffffff;
+}
