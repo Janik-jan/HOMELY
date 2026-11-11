@@ -12,6 +12,9 @@ import {
   Search,
   Star,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
+  X
 } from "lucide-react";
 import Header from "../components/Header";
 import "./PropertyDetails.css";
@@ -42,6 +45,18 @@ const [appointmentStatus, setAppointmentStatus] = useState("");
 const [appointmentSubmitting, setAppointmentSubmitting] = useState(false);
 const token = localStorage.getItem("authToken");
 const navigate = useNavigate();
+const [activeImageIndex, setActiveImageIndex] = useState(0);
+const [isImageZoomed, setIsImageZoomed] = useState(false);
+
+const galleryImages = property?.images?.length
+  ? property.images
+  : property?.image
+    ? [property.image]
+    : [];
+    useEffect(() => {
+  setActiveImageIndex(0);
+  setIsImageZoomed(false);
+}, [id]);
 const loadReviews = async () => {
   try {
     const response = await fetch(
@@ -214,7 +229,6 @@ const submitAppointment = async (event) => {
         const response = await fetch(
           `/api/properties/${id}`
         );
-
         if (response.status === 404) {
           throw new Error("Объявление не найдено");
         }
@@ -234,6 +248,38 @@ const submitAppointment = async (event) => {
 
     fetchProperty();
   }, [id]);
+// Сохранение просмотренного объявления в истории
+useEffect(() => {
+  if (!property?.id) return;
+
+  try {
+    const savedHistory = JSON.parse(
+      localStorage.getItem("viewedProperties") || "[]"
+    );
+
+    const history = Array.isArray(savedHistory) ? savedHistory : [];
+
+    const viewedProperty = {
+      ...property,
+      viewedAt: new Date().toISOString(),
+    };
+
+    const updatedHistory = [
+      viewedProperty,
+      ...history.filter(
+        (item) => Number(item.id) !== Number(property.id)
+      ),
+    ].slice(0, 20);
+
+    localStorage.setItem(
+      "viewedProperties",
+      JSON.stringify(updatedHistory)
+    );
+  } catch (error) {
+    console.error("Не удалось сохранить историю просмотров:", error);
+  }
+}, [property]);
+
 useEffect(() => {
   async function checkFavorite() {
     const token = localStorage.getItem("authToken");
@@ -381,22 +427,123 @@ async function toggleFavorite() {
         </div>
 
         <section className="details-gallery">
-          <div className="gallery-main">
-            <img
-              src={property.image}
-              alt={property.title}
-            />
-          </div>
+  <div className="gallery-main">
+    {galleryImages.length > 0 && (
+      <>
+        <img
+          src={galleryImages[activeImageIndex] || galleryImages[0]}
+          alt={property.title}
+          onClick={() => setIsImageZoomed(true)}
+        />
 
-          <div className="gallery-thumbnails">
-            <button className="gallery-thumbnail active">
-              <img
-                src={property.image}
-                alt="Фотография квартиры"
-              />
+        {galleryImages.length > 1 && (
+          <>
+            <button
+              className="gallery-arrow gallery-arrow-left"
+              onClick={() =>
+                setActiveImageIndex((prev) =>
+                  prev === 0 ? galleryImages.length - 1 : prev - 1
+                )
+              }
+              aria-label="Предыдущее фото"
+            >
+              <ChevronLeft size={25} />
             </button>
-          </div>
-        </section>
+
+            <button
+              className="gallery-arrow gallery-arrow-right"
+              onClick={() =>
+                setActiveImageIndex((prev) =>
+                  prev === galleryImages.length - 1 ? 0 : prev + 1
+                )
+              }
+              aria-label="Следующее фото"
+            >
+              <ChevronRight size={25} />
+            </button>
+          </>
+        )}
+
+        <button
+          className="gallery-zoom-button"
+          onClick={() => setIsImageZoomed(true)}
+          aria-label="Увеличить фото"
+        >
+          <Maximize2 size={19} />
+        </button>
+
+        <span className="gallery-counter">
+          {activeImageIndex + 1} / {galleryImages.length}
+        </span>
+      </>
+    )}
+  </div>
+
+  {galleryImages.length > 1 && (
+    <div className="gallery-thumbnails">
+      {galleryImages.map((image, index) => (
+        <button
+          key={`${image}-${index}`}
+          className={`gallery-thumbnail ${
+            activeImageIndex === index ? "active" : ""
+          }`}
+          onClick={() => setActiveImageIndex(index)}
+        >
+          <img src={image} alt={`Фотография ${index + 1}`} />
+        </button>
+      ))}
+    </div>
+  )}
+
+  {isImageZoomed && galleryImages.length > 0 && (
+    <div
+      className="gallery-lightbox"
+      onClick={() => setIsImageZoomed(false)}
+    >
+      <button
+        className="gallery-lightbox-close"
+        onClick={() => setIsImageZoomed(false)}
+        aria-label="Закрыть"
+      >
+        <X size={28} />
+      </button>
+
+      {galleryImages.length > 1 && (
+        <button
+          className="gallery-lightbox-arrow gallery-lightbox-left"
+          onClick={(event) => {
+            event.stopPropagation();
+            setActiveImageIndex((prev) =>
+              prev === 0 ? galleryImages.length - 1 : prev - 1
+            );
+          }}
+        >
+          <ChevronLeft size={32} />
+        </button>
+      )}
+
+      <img
+        src={galleryImages[activeImageIndex]}
+        alt={property.title}
+        onClick={(event) => event.stopPropagation()}
+      />
+
+      {galleryImages.length > 1 && (
+        <button
+          className="gallery-lightbox-arrow gallery-lightbox-right"
+          onClick={(event) => {
+            event.stopPropagation();
+            setActiveImageIndex((prev) =>
+              prev === galleryImages.length - 1 ? 0 : prev + 1
+            );
+          }}
+        >
+          <ChevronRight size={32} />
+        </button>
+      )}
+    </div>
+  )}
+</section>
 
         <div className="details-content-grid">
           <div className="details-main-content">

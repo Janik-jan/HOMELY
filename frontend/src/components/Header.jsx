@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Home, Heart, UserRound, Plus } from "lucide-react";
+import { Home, Heart, UserRound, Plus, Clock3 } from "lucide-react";
 import "./Header.css";
 
 function Header() {
@@ -28,6 +28,10 @@ function Header() {
           <Heart size={18} />
           Избранное
         </Link>
+        <Link className="header-favorites" to="/history">
+  <Clock3 size={18} />
+  История
+</Link>
 
         <Link
           className="header-favorites"

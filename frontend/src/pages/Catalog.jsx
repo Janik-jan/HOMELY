@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   MapPin,
@@ -9,10 +9,10 @@ import {
   Maximize2,
   SlidersHorizontal,
   ArrowUpRight,
+  GitCompareArrows,
 } from "lucide-react";
 import Header from "../components/Header";
 import "./Catalog.css";
-import { useNavigate } from "react-router-dom";
 
 const API_URL = "/api/properties";
 const FAVORITES_URL = "/api/favorites";
@@ -24,13 +24,24 @@ function Catalog() {
 
   const [dealType, setDealType] = useState("rent");
   const [search, setSearch] = useState("");
-const [rooms, setRooms] = useState("all");
-const [minPrice, setMinPrice] = useState("");
-const [maxPrice, setMaxPrice] = useState("");
+  const [rooms, setRooms] = useState("all");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState("default");
+
   const [favorites, setFavorites] = useState([]);
+
+  const [compareIds, setCompareIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("compareProperties")) || [];
+    } catch {
+      return [];
+    }
+  });
+
   const navigate = useNavigate();
 
+  // Загружаем объявления
   useEffect(() => {
     async function fetchProperties() {
       try {
@@ -68,33 +79,62 @@ const [maxPrice, setMaxPrice] = useState("");
 
     fetchProperties();
   }, []);
-useEffect(() => {
-  async function fetchFavorites() {
-    const token = localStorage.getItem("authToken");
 
-    if (!token) {
-      setFavorites([]);
-      return;
+  // Загружаем избранное
+  useEffect(() => {
+    async function fetchFavorites() {
+      const token = localStorage.getItem("authToken");
+
+      if (!token) {
+        setFavorites([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(FAVORITES_URL, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        setFavorites(data.properties.map((property) => property.id));
+      } catch (error) {
+        console.error("Ошибка загрузки избранного:", error);
+      }
     }
 
-    try {
-      const response = await fetch(FAVORITES_URL, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    fetchFavorites();
+  }, []);
 
-      if (!response.ok) return;
+  // Сохраняем выбранные объекты для сравнения
+  useEffect(() => {
+    localStorage.setItem("compareProperties", JSON.stringify(compareIds));
+  }, [compareIds]);
 
-      const data = await response.json();
-      setFavorites(data.properties.map((property) => property.id));
-    } catch (error) {
-      console.error("Ошибка загрузки избранного:", error);
-    }
+  // Добавление и удаление объекта из сравнения
+  function toggleCompare(id) {
+    setCompareIds((current) => {
+      const exists = current.some(
+        (item) => String(item) === String(id)
+      );
+
+      if (exists) {
+        return current.filter((item) => String(item) !== String(id));
+      }
+
+      if (current.length >= 3) {
+        alert("Можно сравнить максимум 3 объекта");
+        return current;
+      }
+
+      return [...current, id];
+    });
   }
 
-  fetchFavorites();
-}, []);
+  // Фильтрация объявлений
   const filteredProperties = useMemo(() => {
     let result = properties.filter((property) => {
       const searchText =
@@ -104,27 +144,27 @@ useEffect(() => {
       const matchesType = property.type === dealType;
 
       const propertyRooms = Number(property.rooms);
-const propertyPrice = Number(property.price);
+      const propertyPrice = Number(property.price);
 
-const matchesRooms =
-  rooms === "all" ||
-  (rooms === "4+"
-    ? propertyRooms >= 4
-    : propertyRooms === Number(rooms));
+      const matchesRooms =
+        rooms === "all" ||
+        (rooms === "4+"
+          ? propertyRooms >= 4
+          : propertyRooms === Number(rooms));
 
-const matchesMinPrice =
-  minPrice === "" || propertyPrice >= Number(minPrice);
+      const matchesMinPrice =
+        minPrice === "" || propertyPrice >= Number(minPrice);
 
-const matchesMaxPrice =
-  maxPrice === "" || propertyPrice <= Number(maxPrice);
+      const matchesMaxPrice =
+        maxPrice === "" || propertyPrice <= Number(maxPrice);
 
-return (
-  matchesSearch &&
-  matchesType &&
-  matchesRooms &&
-  matchesMinPrice &&
-  matchesMaxPrice
-);
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesRooms &&
+        matchesMinPrice &&
+        matchesMaxPrice
+      );
     });
 
     if (sort === "cheap") {
@@ -138,54 +178,56 @@ return (
     return result;
   }, [properties, dealType, search, rooms, minPrice, maxPrice, sort]);
 
+  // Добавление и удаление из избранного
   async function toggleFavorite(id) {
-  const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("authToken");
 
-  if (!token) {
-    navigate("/login");
-    return;
-  }
-
-  const isSelected = favorites.includes(id);
-
-  try {
-    const response = await fetch(`${FAVORITES_URL}/${id}`, {
-      method: isSelected ? "DELETE" : "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem("authToken");
-        navigate("/login");
-        return;
-      }
-
-      alert(data.error || "Не удалось изменить избранное");
+    if (!token) {
+      navigate("/login");
       return;
     }
 
-    setFavorites((current) =>
-      isSelected
-        ? current.filter((item) => item !== id)
-        : [...current, id]
-    );
-  } catch (error) {
-    alert("Не удалось подключиться к серверу");
-  }
-}
+    const isSelected = favorites.includes(id);
 
+    try {
+      const response = await fetch(`${FAVORITES_URL}/${id}`, {
+        method: isSelected ? "DELETE" : "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("authToken");
+          navigate("/login");
+          return;
+        }
+
+        alert(data.error || "Не удалось изменить избранное");
+        return;
+      }
+
+      setFavorites((current) =>
+        isSelected
+          ? current.filter((item) => item !== id)
+          : [...current, id]
+      );
+    } catch (error) {
+      alert("Не удалось подключиться к серверу");
+    }
+  }
+
+  // Сброс фильтров
   function resetFilters() {
-  setSearch("");
-  setRooms("all");
-  setMinPrice("");
-  setMaxPrice("");
-  setSort("default");
-}
+    setSearch("");
+    setRooms("all");
+    setMinPrice("");
+    setMaxPrice("");
+    setSort("default");
+  }
 
   return (
     <div className="catalog-page">
@@ -205,6 +247,22 @@ return (
             в которых вам предстоит жить.
           </p>
         </div>
+
+        {compareIds.length > 0 && (
+          <div className="compare-toolbar">
+            <div>
+              <GitCompareArrows size={21} />
+              <span>
+                Выбрано для сравнения: {compareIds.length} из 3
+              </span>
+            </div>
+
+            <Link to="/compare" className="compare-toolbar-link">
+              Сравнить объекты
+              <ArrowUpRight size={17} />
+            </Link>
+          </div>
+        )}
 
         <section className="catalog-search">
           <div className="catalog-deal-tabs">
@@ -253,26 +311,28 @@ return (
                 onChange={(event) => setRooms(event.target.value)}
               >
                 <option value="all">Любое количество</option>
-<option value="1">1 комната</option>
-<option value="2">2 комнаты</option>
-<option value="3">3 комнаты</option>
-<option value="4+">4 и более комнат</option>
+                <option value="1">1 комната</option>
+                <option value="2">2 комнаты</option>
+                <option value="3">3 комнаты</option>
+                <option value="4+">4 и более комнат</option>
               </select>
             </div>
-<div className="filter-group">
-  <label htmlFor="min-price-filter">
-    Минимальная цена, ₽
-  </label>
 
-  <input
-    id="min-price-filter"
-    type="number"
-    min="0"
-    placeholder="От любой суммы"
-    value={minPrice}
-    onChange={(event) => setMinPrice(event.target.value)}
-  />
-</div>
+            <div className="filter-group">
+              <label htmlFor="min-price-filter">
+                Минимальная цена, ₽
+              </label>
+
+              <input
+                id="min-price-filter"
+                type="number"
+                min="0"
+                placeholder="От любой суммы"
+                value={minPrice}
+                onChange={(event) => setMinPrice(event.target.value)}
+              />
+            </div>
+
             <div className="filter-group">
               <label htmlFor="price-filter">
                 Максимальная цена, ₽
@@ -363,6 +423,21 @@ return (
                         />
                       </button>
 
+                      <button
+                        className={`catalog-compare ${
+                          compareIds.some(
+                            (id) => String(id) === String(property.id)
+                          )
+                            ? "selected"
+                            : ""
+                        }`}
+                        onClick={() => toggleCompare(property.id)}
+                        aria-label="Добавить в сравнение"
+                        title="Добавить в сравнение"
+                      >
+                        <GitCompareArrows size={19} />
+                      </button>
+
                       <span className="catalog-property-label">
                         {property.type === "rent" ? "Аренда" : "Продажа"}
                       </span>
@@ -417,7 +492,6 @@ return (
             ) : (
               <div className="catalog-empty">
                 <Search size={32} />
-
                 <h3>Ничего не найдено</h3>
 
                 <p>

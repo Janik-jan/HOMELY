@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -9,6 +10,9 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import AddProperty from "./pages/AddProperty";
 import Favorites from "./pages/Favorites";
+import Compare from "./pages/Compare";
+import History from "./pages/History";
+
 import "./buttons.css";
 
 function ProtectedRoute({ children }) {
@@ -53,8 +57,10 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/property/:id" element={<PropertyDetails />} />
+        <Route path="/compare" element={<Compare />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/history" element={<History />} />
 
         <Route
           path="/profile"

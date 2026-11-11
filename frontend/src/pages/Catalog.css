@@ -535,3 +535,59 @@
     flex-wrap: wrap;
   }
 }
+.catalog-card-image {
+  position: relative;
+}
+
+.catalog-compare {
+  position: absolute;
+  top: 58px;
+  right: 15px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: white;
+  color: #a96b25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.catalog-compare:hover,
+.catalog-compare.selected {
+  background: #a96b25;
+  color: white;
+}
+
+.compare-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 17px 22px;
+  margin: 25px 0;
+  background: white;
+  border: 1px solid #eee7df;
+  border-radius: 12px;
+  color: #806b56;
+}
+
+.compare-toolbar > div,
+.compare-toolbar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compare-toolbar-link {
+  color: #a96b25;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.compare-toolbar-link:hover {
+  color: #d18b37;
+}

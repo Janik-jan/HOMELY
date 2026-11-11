@@ -7,7 +7,8 @@ import {
   Image,
   MapPin,
   Send,
-  CheckCircle2,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import Header from "../components/Header";
 import "./AddProperty.css";
@@ -39,11 +40,11 @@ function AddProperty() {
     area: "",
     floor: "",
     total_floors: "",
-    image: "",
     description: "",
     amenities: [],
   });
 
+  const [images, setImages] = useState([""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -52,6 +53,20 @@ function AddProperty() {
       ...form,
       [e.target.name]: e.target.value,
     });
+  }
+
+  function handleImageChange(index, value) {
+    setImages((prev) =>
+      prev.map((image, i) => (i === index ? value : image))
+    );
+  }
+
+  function addImageField() {
+    setImages((prev) => [...prev, ""]);
+  }
+
+  function removeImageField(index) {
+    setImages((prev) => prev.filter((_, i) => i !== index));
   }
 
   function handleAmenityChange(amenity) {
@@ -72,6 +87,15 @@ function AddProperty() {
       return;
     }
 
+    const validImages = images
+      .map((image) => image.trim())
+      .filter(Boolean);
+
+    if (validImages.length === 0) {
+      setError("Добавьте хотя бы одну фотографию.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -88,6 +112,8 @@ function AddProperty() {
           area: Number(form.area),
           floor: Number(form.floor),
           total_floors: Number(form.total_floors),
+          image: validImages[0],
+          images: validImages,
         }),
       });
 
@@ -272,31 +298,69 @@ function AddProperty() {
             Выбрано: {form.amenities.length}
           </p>
 
-          <h2>Фотография и описание</h2>
+          <h2>Фотографии и описание</h2>
 
-          <label>
-            <span><Image size={16} /> Ссылка на фотографию</span>
-            <input
-              type="url"
-              name="image"
-              value={form.image}
-              onChange={handleChange}
-              placeholder="https://example.com/photo.jpg"
-              required
-            />
-          </label>
+          <p className="add-property-amenities-description">
+            Добавьте несколько ссылок на фотографии недвижимости.
+            Первая фотография будет главной.
+          </p>
 
-          {form.image && (
-            <div className="add-property-preview">
-              <img
-                src={form.image}
-                alt="Предпросмотр недвижимости"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            </div>
-          )}
+          <div className="add-property-images">
+            {images.map((image, index) => (
+              <div className="add-property-image-field" key={index}>
+                <label>
+                  <span>
+                    <Image size={16} />
+                    {index === 0
+                      ? "Главная фотография"
+                      : `Фотография №${index + 1}`}
+                  </span>
+
+                  <input
+                    type="url"
+                    value={image}
+                    onChange={(e) =>
+                      handleImageChange(index, e.target.value)
+                    }
+                    placeholder="https://example.com/photo.jpg"
+                    required={index === 0}
+                  />
+                </label>
+
+                {images.length > 1 && (
+                  <button
+                    type="button"
+                    className="add-property-remove-image"
+                    onClick={() => removeImageField(index)}
+                    title="Удалить фотографию"
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                )}
+
+                {image.trim() && (
+                  <div className="add-property-preview">
+                    <img
+                      src={image}
+                      alt={`Фотография недвижимости ${index + 1}`}
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className="add-property-add-image"
+            onClick={addImageField}
+          >
+            <Plus size={17} />
+            Добавить фотографию
+          </button>
 
           <label>
             Описание недвижимости

@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"database/sql"
@@ -41,6 +41,7 @@ type Property struct {
 	Floor       int      `json:"floor"`
 	TotalFloors int      `json:"total_floors"`
 	Image       string   `json:"image"`
+	Images      []string `json:"images"`
 	Description string   `json:"description"`
 	Amenities   []string `json:"amenities"`
 	UserID      *int     `json:"user_id,omitempty"`
@@ -56,6 +57,7 @@ type CreatePropertyRequest struct {
 	Floor       int      `json:"floor"`
 	TotalFloors int      `json:"total_floors"`
 	Image       string   `json:"image"`
+	Images      []string `json:"images"`
 	Description string   `json:"description"`
 	Amenities   []string `json:"amenities"`
 }
@@ -120,21 +122,21 @@ func main() {
 	}
 
 	port := os.Getenv("PORT")
-if port == "" {
-    port = "8080"
-}
+	if port == "" {
+		port = "8080"
+	}
 
-r.Static("/assets", "./dist/assets")
-r.StaticFile("/", "./dist/index.html")
-r.NoRoute(func(c *gin.Context) {
-    c.File("./dist/index.html")
-})
+	r.Static("/assets", "./dist/assets")
+	r.StaticFile("/", "./dist/index.html")
+	r.NoRoute(func(c *gin.Context) {
+		c.File("./dist/index.html")
+	})
 
-log.Println("HOMELY запущен на порту " + port)
+	log.Println("HOMELY запущен на порту " + port)
 
-if err := r.Run(":" + port); err != nil {
-    log.Fatal(err)
-}
+	if err := r.Run(":" + port); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func health(c *gin.Context) {
@@ -145,38 +147,38 @@ func health(c *gin.Context) {
 }
 
 func connectDatabase() error {
-    databaseURL := os.Getenv("DATABASE_URL")
+	databaseURL := os.Getenv("DATABASE_URL")
 
-    if databaseURL == "" {
-        return fmt.Errorf("переменная DATABASE_URL не задана")
-    }
+	if databaseURL == "" {
+		return fmt.Errorf("переменная DATABASE_URL не задана")
+	}
 
-    parsedURL, err := url.Parse(databaseURL)
-    if err != nil {
-        return err
-    }
+	parsedURL, err := url.Parse(databaseURL)
+	if err != nil {
+		return err
+	}
 
-    query := parsedURL.Query()
-    if query.Get("sslmode") == "" {
-        query.Set("sslmode", "require")
-    }
-    parsedURL.RawQuery = query.Encode()
+	query := parsedURL.Query()
+	if query.Get("sslmode") == "" {
+		query.Set("sslmode", "require")
+	}
+	parsedURL.RawQuery = query.Encode()
 
-    db, err = sql.Open("postgres", parsedURL.String())
-    if err != nil {
-        return err
-    }
+	db, err = sql.Open("postgres", parsedURL.String())
+	if err != nil {
+		return err
+	}
 
-    db.SetMaxOpenConns(10)
-    db.SetMaxIdleConns(5)
-    db.SetConnMaxLifetime(30 * time.Minute)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
 
-    if err := db.Ping(); err != nil {
-        return err
-    }
+	if err := db.Ping(); err != nil {
+		return err
+	}
 
-    log.Println("Подключение к PostgreSQL успешно")
-    return nil
+	log.Println("Подключение к PostgreSQL успешно")
+	return nil
 }
 
 func buildDatabaseURL(host, port, user, password, database string) string {
@@ -243,6 +245,27 @@ func createTables() error {
 	if err != nil {
 		return err
 	}
+
+	// Добавляем массив фотографий и переносим туда старые изображения.
+	_, err = db.Exec(`
+		ALTER TABLE properties
+		ADD COLUMN IF NOT EXISTS images TEXT[] NOT NULL DEFAULT '{}'
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`
+		UPDATE properties
+		SET images = ARRAY[image]
+		WHERE (images IS NULL OR cardinality(images) = 0)
+		  AND image IS NOT NULL
+		  AND image <> ''
+	`)
+	if err != nil {
+		return err
+	}
+
 	favoritesQuery := `
 CREATE TABLE IF NOT EXISTS favorites (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -590,10 +613,10 @@ func seedProperties() error {
 	for _, property := range properties {
 		_, err := db.Exec(`
 			INSERT INTO properties (
-				title, address, price, deal_type, rooms,
-				area, floor, total_floors, image, description
-			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    title, address, price, deal_type, rooms,
+    area, floor, total_floors, image, description, images
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		`,
 			property.Title,
 			property.Address,
@@ -605,6 +628,7 @@ func seedProperties() error {
 			property.TotalFloors,
 			property.Image,
 			property.Description,
+			pq.Array([]string{property.Image}),
 		)
 
 		if err != nil {
@@ -620,7 +644,8 @@ func seedProperties() error {
 func getProperties(c *gin.Context) {
 	rows, err := db.Query(`
 		SELECT id, title, address, price, deal_type,
-		       rooms, area, floor, total_floors, image, description
+		       rooms, area, floor, total_floors, image,
+		       description, images
 		FROM properties
 		ORDER BY created_at DESC
 	`)
@@ -649,6 +674,7 @@ func getProperties(c *gin.Context) {
 			&property.TotalFloors,
 			&property.Image,
 			&property.Description,
+			pq.Array(&property.Images),
 		)
 
 		if err != nil {
@@ -681,11 +707,12 @@ func getPropertyByID(c *gin.Context) {
 	var property Property
 
 	err = db.QueryRow(`
-    SELECT id, title, address, price, deal_type,
-           rooms, area, floor, total_floors, image, description, amenities
-    FROM properties
-    WHERE id = $1
-`, id).Scan(
+		SELECT id, title, address, price, deal_type,
+		       rooms, area, floor, total_floors, image,
+		       description, amenities, images
+		FROM properties
+		WHERE id = $1
+	`, id).Scan(
 		&property.ID,
 		&property.Title,
 		&property.Address,
@@ -698,6 +725,7 @@ func getPropertyByID(c *gin.Context) {
 		&property.Image,
 		&property.Description,
 		pq.Array(&property.Amenities),
+		pq.Array(&property.Images),
 	)
 
 	if err == sql.ErrNoRows {
@@ -726,6 +754,7 @@ func getAuthenticatedUserID(c *gin.Context) (int, bool) {
 }
 
 // Создание нового объявления.
+
 func createProperty(c *gin.Context) {
 	userID, ok := getAuthenticatedUserID(c)
 	if !ok {
@@ -745,8 +774,35 @@ func createProperty(c *gin.Context) {
 	request.Image = strings.TrimSpace(request.Image)
 	request.Description = strings.TrimSpace(request.Description)
 
+	// Очищаем список фотографий от пустых ссылок.
+	images := make([]string, 0, len(request.Images))
+
+	for _, image := range request.Images {
+		image = strings.TrimSpace(image)
+		if image != "" {
+			images = append(images, image)
+		}
+	}
+
+	// Поддержка старого формата, в котором передавалось только image.
+	if len(images) == 0 && request.Image != "" {
+		images = append(images, request.Image)
+	}
+
+	if len(images) == 0 {
+		c.JSON(400, gin.H{"error": "Добавьте хотя бы одну фотографию"})
+		return
+	}
+
+	if len(images) > 10 {
+		c.JSON(400, gin.H{"error": "Можно добавить не более 10 фотографий"})
+		return
+	}
+
+	request.Image = images[0]
+
 	if request.Title == "" || request.Address == "" ||
-		request.Image == "" || request.Description == "" {
+		request.Description == "" {
 		c.JSON(400, gin.H{"error": "Заполните все поля"})
 		return
 	}
@@ -766,14 +822,16 @@ func createProperty(c *gin.Context) {
 	var property Property
 
 	err := db.QueryRow(`
-    INSERT INTO properties (
-        title, address, price, deal_type, rooms,
-        area, floor, total_floors, image, description, user_id, amenities
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-    RETURNING id, title, address, price, deal_type,
-        rooms, area, floor, total_floors, image, description, amenities
-`,
+		INSERT INTO properties (
+			title, address, price, deal_type, rooms,
+			area, floor, total_floors, image, images,
+			description, user_id, amenities
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		RETURNING id, title, address, price, deal_type,
+			rooms, area, floor, total_floors, image,
+			description, amenities, images
+	`,
 		request.Title,
 		request.Address,
 		request.Price,
@@ -783,6 +841,7 @@ func createProperty(c *gin.Context) {
 		request.Floor,
 		request.TotalFloors,
 		request.Image,
+		pq.Array(images),
 		request.Description,
 		userID,
 		pq.Array(request.Amenities),
@@ -799,6 +858,7 @@ func createProperty(c *gin.Context) {
 		&property.Image,
 		&property.Description,
 		pq.Array(&property.Amenities),
+		pq.Array(&property.Images),
 	)
 
 	if err != nil {
@@ -824,12 +884,12 @@ func getMyProperties(c *gin.Context) {
 	}
 
 	rows, err := db.Query(`
-		SELECT id, title, address, price, deal_type,
-			rooms, area, floor, total_floors, image, description
-		FROM properties
-		WHERE user_id = $1
-		ORDER BY created_at DESC
-	`, userID)
+    SELECT id, title, address, price, deal_type,
+        rooms, area, floor, total_floors, image, description, images
+    FROM properties
+    WHERE user_id = $1
+    ORDER BY created_at DESC
+`, userID)
 
 	if err != nil {
 		log.Println("Ошибка получения объявлений пользователя:", err)
@@ -855,6 +915,7 @@ func getMyProperties(c *gin.Context) {
 			&property.TotalFloors,
 			&property.Image,
 			&property.Description,
+			pq.Array(&property.Images),
 		)
 
 		if err != nil {
@@ -929,14 +990,14 @@ func getFavorites(c *gin.Context) {
 	}
 
 	rows, err := db.Query(`
-        SELECT p.id, p.title, p.address, p.price, p.deal_type,
-               p.rooms, p.area, p.floor, p.total_floors,
-               p.image, p.description
-        FROM favorites f
-        JOIN properties p ON p.id = f.property_id
-        WHERE f.user_id = $1
-        ORDER BY f.created_at DESC
-    `, userID)
+    SELECT p.id, p.title, p.address, p.price, p.deal_type,
+           p.rooms, p.area, p.floor, p.total_floors,
+           p.image, p.description, p.images
+    FROM favorites f
+    JOIN properties p ON p.id = f.property_id
+    WHERE f.user_id = $1
+    ORDER BY f.created_at DESC
+`, userID)
 
 	if err != nil {
 		log.Println("Ошибка получения избранного:", err)
@@ -962,6 +1023,7 @@ func getFavorites(c *gin.Context) {
 			&property.TotalFloors,
 			&property.Image,
 			&property.Description,
+			pq.Array(&property.Images),
 		)
 
 		if err != nil {
